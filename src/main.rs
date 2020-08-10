@@ -2,15 +2,15 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
 
 const MEMORY_SIZE: usize = 4096;
 
 const SCALE: usize = 16;
 const DISPLAY_SIZE: [usize; 2] = [64, 32];
 
-fn main() -> Result<(), String> {
-    let matches = App::new("Chip-8 VM emulator")
+fn setup_cmd_program_arguments() -> ArgMatches<'static> {
+    App::new("Chip-8 VM emulator")
         .version("0.1.0")
         .author("Jakub Sordyl 'Mapet13' <jakubsordyl1@gmail.com>")
         .about("This is a simple Chip-8 VM emulator developed in Rust-lang for learning purpose.")
@@ -22,12 +22,20 @@ fn main() -> Result<(), String> {
                 .takes_value(true)
                 .help("The ROM file you want to run in this VM"),
         )
-        .get_matches();
+        .get_matches()
+}
 
-    let file_name = (match matches.value_of("file") {
-        Some(value) => Ok(value),
-        None => Err("Command line argument error"),
-    })?;
+fn get_rom_path(matches: ArgMatches) -> Result<String, String> {
+    match matches.value_of("file") {
+        Some(value) => Ok(value.to_string()),
+        None => Err("Command line argument error".to_string()),
+    }
+}
+
+fn main() -> Result<(), String> {
+    let matches = setup_cmd_program_arguments();
+
+    let file_name = get_rom_path(matches)?;
     println!("ROM file path you provided '{}'", file_name);
 
     let memory: [u8; MEMORY_SIZE];
