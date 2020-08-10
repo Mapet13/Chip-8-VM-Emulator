@@ -4,11 +4,12 @@ use sdl2::pixels::Color;
 
 use clap::{App, Arg, ArgMatches};
 use std::{
-    fs::{self, File},
-    io::Read,
+    fs::{self, File}, io::{Write, Read}
 };
 
-const MEMORY_SIZE: usize = 4096;
+const MEMORY_SIZE: usize = 0x1000; // 4096
+
+const CHIP8_RESERVED_MEMORY_SIZE: usize = 0x200; // 512
 
 const SCALE: usize = 16;
 const DISPLAY_SIZE: [usize; 2] = [64, 32];
@@ -39,11 +40,23 @@ fn get_rom_path(matches: ArgMatches) -> Result<String, String> {
 fn read_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, String> {
     let mut f = File::open(&filename).expect("no file found");
     let metadata = fs::metadata(&filename).expect("unable to read metadata");
-    let mut buffer = vec![0; metadata.len() as usize];
+    let metadata_len =  metadata.len() as usize;
+    if metadata_len > MEMORY_SIZE - CHIP8_RESERVED_MEMORY_SIZE {
+        return Err("File is to big".to_string());
+    }
+    let mut buffer = vec![0; metadata_len];
     match f.read_to_end(&mut buffer) {
         Ok(_) => Ok(buffer),
-        Err(_) => Err("Error with reading ROM file".to_string())
+        Err(_) => Err("Error with reading ROM file".to_string()),
     }
+}
+
+fn byte_copy(from: &[u8], mut to: &mut [u8]) -> usize {
+    to.write(from).unwrap()
+}
+
+fn write_rom_data_to_memory(memory: &mut [u8; MEMORY_SIZE], rom_data: &[u8]) {
+    byte_copy(rom_data, &mut memory[CHIP8_RESERVED_MEMORY_SIZE..MEMORY_SIZE]);
 }
 
 fn main() -> Result<(), String> {
@@ -54,9 +67,11 @@ fn main() -> Result<(), String> {
 
     let rom_data = read_file_as_byte_vec(rom_path.as_str())?;
 
-    let memory: [u8; MEMORY_SIZE];
-    let V: [u8; 15];
-    let I: u16;
+    let mut memory: [u8; MEMORY_SIZE] = [0 as u8; MEMORY_SIZE];
+    let _v: [u8; 15];
+    let _i: u16;
+
+    write_rom_data_to_memory(&mut memory, &rom_data);
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
