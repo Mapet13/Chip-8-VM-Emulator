@@ -3,6 +3,10 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 
 use clap::{App, Arg, ArgMatches};
+use std::{
+    fs::{self, File},
+    io::Read,
+};
 
 const MEMORY_SIZE: usize = 4096;
 
@@ -32,11 +36,23 @@ fn get_rom_path(matches: ArgMatches) -> Result<String, String> {
     }
 }
 
+fn read_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, String> {
+    let mut f = File::open(&filename).expect("no file found");
+    let metadata = fs::metadata(&filename).expect("unable to read metadata");
+    let mut buffer = vec![0; metadata.len() as usize];
+    match f.read_to_end(&mut buffer) {
+        Ok(_) => Ok(buffer),
+        Err(_) => Err("Error with reading ROM file".to_string())
+    }
+}
+
 fn main() -> Result<(), String> {
     let matches = setup_cmd_program_arguments();
 
-    let file_name = get_rom_path(matches)?;
-    println!("ROM file path you provided '{}'", file_name);
+    let rom_path = get_rom_path(matches)?;
+    println!("ROM file path you provided '{}'", rom_path);
+
+    let rom_data = read_file_as_byte_vec(rom_path.as_str())?;
 
     let memory: [u8; MEMORY_SIZE];
     let V: [u8; 15];
