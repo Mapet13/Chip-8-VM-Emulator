@@ -37,7 +37,7 @@ fn get_rom_path(matches: ArgMatches) -> Result<String, String> {
     }
 }
 
-fn read_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, String> {
+fn read_file_as_bytes(filename: &str) -> Result<Vec<u8>, String> {
     let mut f = File::open(&filename).expect("no file found");
     let metadata = fs::metadata(&filename).expect("unable to read metadata");
     let metadata_len =  metadata.len() as usize;
@@ -65,7 +65,7 @@ fn main() -> Result<(), String> {
     let rom_path = get_rom_path(matches)?;
     println!("ROM file path you provided '{}'", rom_path);
 
-    let rom_data = read_file_as_byte_vec(rom_path.as_str())?;
+    let rom_data = read_file_as_bytes(rom_path.as_str())?;
 
     let mut memory: [u8; MEMORY_SIZE] = [0 as u8; MEMORY_SIZE];
     let _v: [u8; 15];
