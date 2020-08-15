@@ -2,14 +2,14 @@ pub enum InstructionSet {
     MachineLanguageSubroutine(u16),
     ClearScreen,
     ReturnFromSubroutine,
-    JumpToAddress(u16),     
+    JumpToAddress(u16),
     ExecuteSubroutine(u16),
     SkipFollowingIfRegisterIsEqualToValue(u8, u8),
     SkipFollowingIfRegisterIsNotEqualToValue(u8, u8),
     SkipFollowingIfRegisterIsEqualToOtherRegister(u8, u8),
     SkipFollowingIfRegisterIsNotEqualToOtherRegister(u8, u8),
     StoreInRegister(u8, u8),
-    AddToRegister(u8, u8),   
+    AddToRegister(u8, u8),
     CopyRegisterValueToOtherRegister(u8, u8),
     SetVxToVxOrVy(u8, u8),
     SetVxToVxAndVy(u8, u8),
@@ -38,8 +38,8 @@ pub enum InstructionSet {
 }
 
 impl ToString for InstructionSet {
-    fn to_string(&self) -> String  {
-         match self {
+    fn to_string(&self) -> String {
+        match self {
             InstructionSet::ClearScreen => {
                 format!("Clearing the Screen")
             }
@@ -97,7 +97,6 @@ impl ToString for InstructionSet {
             InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(register_index, value) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Not Equal To Value [{:02X?}]",
-                    
                     register_index,
                     value,
                 )
@@ -105,7 +104,6 @@ impl ToString for InstructionSet {
             InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Equal To Other Register [{:02X?}]",
-                    
                     x,
                     y
                 )
@@ -146,7 +144,6 @@ impl ToString for InstructionSet {
             InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Not Equal To Other Register  [{:02X?}]",
-                    
                     x,
                     y
                 )
@@ -159,8 +156,7 @@ impl ToString for InstructionSet {
             }
             InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
                 format!(
-                    "Store Value Of Register Vy [{:02X?}] Shifted Right One Bit In Vx [{:02X?}]",
-                    
+                    "Store Value Of Register Vy [{:02X?}] Shifted Right One Bit In Vx [{:02X?}]",  
                     y,
                     x,
                 )
@@ -174,7 +170,6 @@ impl ToString for InstructionSet {
             InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
                 format!(
                     "Store Value Of Register Vy [{:02X?}] Shifted Left One Bit In Vx [{:02X?}]",
-                    
                     y,
                     x,
                 )
@@ -194,14 +189,12 @@ impl ToString for InstructionSet {
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(x) => {
                 format!(
                     "Skip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Pressed",
-                    
                     x
                 )
             }
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(x) => {
                 format!(
                     "kip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Not Pressed",
-                    
                     x
                 )
             }
@@ -239,9 +232,8 @@ impl ToString for InstructionSet {
                 )
             }
         }
-     }
-} 
-
+    }
+}
 
 pub fn decode_opcode(opcode: u16) -> InstructionSet {
     match opcode & 0xF000 {
