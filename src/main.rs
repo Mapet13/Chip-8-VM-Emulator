@@ -40,13 +40,13 @@ fn main() -> Result<(), String> {
     let rom_data = read_file_as_bytes(rom_path.as_str(), MEMORY_SIZE - CHIP8_RESERVED_MEMORY_SIZE)?;
 
     let mut memory: [u8; MEMORY_SIZE] = [0 as u8; MEMORY_SIZE];
-    let _v: [u8; 15];
-    let _i: u16;
+    let mut v: [u8; 16] = [0 as u8; 16];
+    let mut i: u16 = 0;
     let _delay_timer: u8;
     let _sound_timer: u8;
     let mut program_counter: u16 = 0x200;
-    let _stack_pointer: u8;
-    let _stack: [u16; 16];
+    let mut stack_pointer: u8 = 0;
+    let mut stack: [u16; 16] = [0 as u16; 16];
 
     write_rom_data_to_memory(&mut memory, &rom_data);
 
@@ -89,6 +89,69 @@ fn main() -> Result<(), String> {
             Ok(x) => opcode = x,
         }
         let instruction = decode_opcode(opcode);
+
+        match instruction {
+            InstructionSet::ClearScreen => {}
+            InstructionSet::ReturnFromSubroutine => {
+                stack_pointer -= 1;
+                program_counter = stack[stack_pointer as usize];      
+            }
+            InstructionSet::JumpToAddress(address) => program_counter = address - 2,
+            InstructionSet::ExecuteSubroutine(address) => {
+                stack[stack_pointer as usize] = program_counter;
+                stack_pointer += 1;
+                program_counter = address - 2;
+            }
+            InstructionSet::AddToRegister(index, value) => v[index as usize] += value,
+            InstructionSet::StoreInRegister(index, value) => v[index as usize] = value,
+            InstructionSet::AddVxToRegisterI(index) => i += v[index as usize] as u16,
+            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => v[x as usize] = v[y as usize],
+            InstructionSet::SkipFollowingIfRegisterIsEqualToValue(index, value) => {
+                if v[index as usize] == value {
+                    program_counter += 2;
+                }
+            }
+            InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(index, value) => {
+                if v[index as usize] != value {
+                    program_counter += 2;
+                }
+            }
+            InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
+                if v[x as usize] == v[y as usize] {
+                    program_counter += 2;
+                }
+            }
+            InstructionSet::SetVxToVxOrVy(x, y) => v[x as usize] |= v[y as usize],
+            InstructionSet::SetVxToVxAndVy(x, y) => v[x as usize] &= v[y as usize],
+            InstructionSet::SetVxToVxXorVy(x, y) => v[x as usize] ^= v[y as usize],
+            InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
+                let sum = v[x as usize] as u16 + v[y as usize] as u16;
+                v[0xF] = if sum > 255 { 1 } else { 0 };
+                v[x as usize] = (sum & 0x00FF) as u8;
+            }
+            InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
+                v[0xF] = if v[x as usize] > v[y as usize] { 1 } else { 0 };
+                v[x as usize] -= v[y as usize];
+            }
+            InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
+                v[x as usize] = v[y as usize] >> 1;
+                v[0xF] = v[x as usize] & 0x01;
+            }
+            InstructionSet::SetVxToValueOfVyMinusVx(x, y) => {
+                v[0xF] = if v[y as usize] > v[x as usize] { 1 } else { 0 };
+                v[x as usize] = v[y as usize] - v[x as usize];
+            }
+            InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
+                v[x as usize] = v[y as usize] << 1;
+                v[0xF] = (v[x as usize] >> 7) & 0x01;
+            }
+            InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
+                if v[x as usize] != v[y as usize] {
+                    program_counter += 2;
+                }
+            },
+            _ => {}
+        }
 
         if opcode != 0 {
             println!("[{:04X?}]: {}", opcode, instruction.to_string());
