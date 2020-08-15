@@ -64,7 +64,7 @@ impl ToString for InstructionSet {
             InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
                 format!(
                     "Copy Register [{:02X?}] Value To Other Register [{:02X?}]",
-                     x, y
+                     y, x
                 )
             }
             InstructionSet::None => {
