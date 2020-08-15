@@ -41,13 +41,13 @@ impl ToString for InstructionSet {
     fn to_string(&self) -> String {
         match self {
             InstructionSet::ClearScreen => {
-                format!("Clearing the Screen")
+                "Clearing the Screen".to_string()
             }
             InstructionSet::JumpToAddress(address) => {
                 format!("Jump To Address [{:03X?}]", address)
             }
             InstructionSet::ExecuteSubroutine(_) => {
-                format!("Execute Subroutine")
+                "Execute Subroutine".to_string()
             }
             InstructionSet::StoreInRegister(index, value) => {
                 format!(
@@ -68,7 +68,7 @@ impl ToString for InstructionSet {
                 )
             }
             InstructionSet::None => {
-                    format!("Not Handled Opcode")
+                    "Not Handled Opcode".to_string()
             }
             InstructionSet::SkipFollowingIfRegisterIsEqualToValue(register_index, value) => {
                 format!(
@@ -115,7 +115,7 @@ impl ToString for InstructionSet {
                 )
             }
             InstructionSet::MachineLanguageSubroutine(_) => {
-                    format!("Machine Language Subroutine")
+                    "Machine Language Subroutine".to_string()
             }
             InstructionSet::StoreAddressInRegisterI(address) => {
                 format!(
@@ -139,7 +139,7 @@ impl ToString for InstructionSet {
                 format!("Draw a sprite at position VX [{:02X?}], VY [{:02X?}] with N [{:02X?}] bytes of sprite data starting at the address stored in I", x, y, sprite_data)
             }
             InstructionSet::ReturnFromSubroutine => {
-                format!("Return From Subroutine")
+                "Return From Subroutine".to_string()
             }
             InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
                 format!(
