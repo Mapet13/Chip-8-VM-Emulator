@@ -23,8 +23,12 @@ fn write_rom_data_to_memory(memory: &mut [u8; MEMORY_SIZE], rom_data: &[u8]) {
     );
 }
 
-fn fetch_opcode(memory: &[u8], pc: u16) -> u16 {
-    (memory[pc as usize] as u16) << 8 | memory[pc as usize + 1] as u16
+fn fetch_opcode(memory: &[u8], pc: u16) -> Result<u16, ()> {
+    if pc >= MEMORY_SIZE as u16 {
+        return Err(());
+    }
+
+    Ok((memory[pc as usize] as u16) << 8 | memory[pc as usize + 1] as u16)
 }
 
 fn main() -> Result<(), String> {
@@ -79,7 +83,11 @@ fn main() -> Result<(), String> {
             }
         }
 
-        let opcode: u16 = fetch_opcode(&memory, program_counter);
+        let opcode;
+        match fetch_opcode(&memory, program_counter) {
+            Err(_) => break 'running,
+            Ok(x) => opcode = x,
+        }
         let instruction = decode_opcode(opcode);
 
         if opcode != 0 {
