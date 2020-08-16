@@ -70,7 +70,9 @@ impl EventHandler for MainState {
         let instruction = decode_opcode(opcode);
 
         match instruction {
-            InstructionSet::ClearScreen => {}
+            InstructionSet::ClearScreen => {
+                // todo
+            }
             InstructionSet::ReturnFromSubroutine => {
                 self.chip8_state.stack_pointer -= 1;
                 self.chip8_state.program_counter =
@@ -90,9 +92,6 @@ impl EventHandler for MainState {
             }
             InstructionSet::StoreInRegister(index, value) => {
                 self.chip8_state.v[index as usize] = value
-            }
-            InstructionSet::AddVxToRegisterI(index) => {
-                self.chip8_state.i += self.chip8_state.v[index as usize] as u16
             }
             InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
                 self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize]
@@ -158,6 +157,36 @@ impl EventHandler for MainState {
                 if self.chip8_state.v[x as usize] != self.chip8_state.v[y as usize] {
                     self.chip8_state.program_counter += 2;
                 }
+            }
+            InstructionSet::StoreDelayTimerInRegisterVx(index) => {
+                self.chip8_state.v[index as usize] = self.chip8_state.delay_timer;
+            } 
+            InstructionSet::WaitForAKeyPress(index) => {
+                //todo
+            }
+            InstructionSet::SetDelayTimerToVx(index) => {
+                self.chip8_state.delay_timer =  self.chip8_state.v[index as usize];
+            }
+            InstructionSet::SetSoundTimerToVx(index) => {
+                self.chip8_state.sound_timer =  self.chip8_state.v[index as usize];
+            }
+            InstructionSet::AddVxToRegisterI(index) => {
+                self.chip8_state.i += self.chip8_state.v[index as usize] as u16;
+            }
+            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
+                //todo
+            }
+            InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
+                //todo
+            }
+            InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(index) => {
+                //todo
+            }
+            InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(index) => {
+                //todo  
+            }
+            InstructionSet::DrawSprite(x, y, sprite_data) => {
+                //todo
             }
             _ => {}
         }
