@@ -7,14 +7,15 @@ use ggez::graphics;
 use ggez::Context;
 
 use gfx_core::{handle::RenderTargetView, memory::Typed};
-use gfx_device_gl;
 
 use imgui::*;
 use imgui_gfx_renderer::*;
 
 use std::time::Instant;
 
-use super::chip8_state::*;
+use super::super::chip8_state::*;
+
+use super::imgui_render::render_gui;
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
 struct MouseState {
@@ -56,10 +57,10 @@ impl ImGuiWrapper {
         };
 
         // Renderer
-        let mut renderer = Renderer::init(&mut imgui, &mut *factory, shaders).unwrap();
+        let renderer = Renderer::init(&mut imgui, &mut *factory, shaders).unwrap();
 
         {
-            let mut io = imgui.io_mut();
+            let io = imgui.io_mut();
             io[Key::Tab] = KeyCode::Tab as _;
             io[Key::LeftArrow] = KeyCode::Left as _;
             io[Key::RightArrow] = KeyCode::Right as _;
@@ -110,77 +111,9 @@ impl ImGuiWrapper {
 
         let ui = self.imgui.frame();
 
-        let flags = imgui::WindowFlags::NO_RESIZE
-            | imgui::WindowFlags::NO_MOVE
-            | imgui::WindowFlags::NO_COLLAPSE;
-
         // Various ui things
         {
-            Window::new(im_str!("Registers"))
-                .size(
-                    [
-                        DEBUG_EXTRA_DISPLAY_SIZE[0],
-                        (DISPLAY_SIZE[1] * SCALE) as f32,
-                    ],
-                    imgui::Condition::Always,
-                )
-                .position(
-                    [(DISPLAY_SIZE[0] * SCALE) as f32, 0.0],
-                    imgui::Condition::Always,
-                )
-                .flags(flags)
-                .build(&ui, || {
-                    ui.text(im_str!("Main Registers: "));
-                    ui.separator();
-                    for i in 0..chip8_state.v.len() {
-                        ui.text(im_str!("{:02}: {:02X?}", i, chip8_state.v[i]));
-                    }
-                    ui.separator();
-                    ui.text(im_str!("Other Registers: "));
-                    ui.separator();
-                    ui.text(im_str!("i: {:02X?}", chip8_state.i));
-                    ui.text(im_str!("stack pointer: {:02X?}", chip8_state.stack_pointer));
-                    ui.text(im_str!("delay timer: {:02X?}", chip8_state.delay_timer));
-                    ui.text(im_str!("sound timer: {:02X?}", chip8_state.sound_timer));
-                    ui.text(im_str!(
-                        "program counter: {:03X?}",
-                        chip8_state.program_counter
-                    ));
-                });
-
-            let memory_table_window_size = [
-                DEBUG_EXTRA_DISPLAY_SIZE[0] + (DISPLAY_SIZE[0] * SCALE) as f32,
-                DEBUG_EXTRA_DISPLAY_SIZE[1],
-            ];
-            Window::new(im_str!("Memory Table"))
-                .size(
-                    [memory_table_window_size[0], memory_table_window_size[1]],
-                    imgui::Condition::Always,
-                )
-                .position(
-                    [0.0, (DISPLAY_SIZE[1] * SCALE) as f32],
-                    imgui::Condition::Always,
-                )
-                .flags(flags)
-                .build(&ui, || {
-                    let col_count = memory_table_window_size[0] as usize / 22;
-                    let table_count = chip8_state.memory.len() / col_count;
-
-
-                    for i in 0..table_count {
-                        for j in 0..col_count {
-                            let index = col_count * i + j;
-                            if index as u16 == chip8_state.program_counter || index as u16 == chip8_state.program_counter + 1 {
-                                ui.text_colored([1.0, 0.0, 0.5, 1.0], im_str!("{:02X?}", chip8_state.memory[col_count * i + j]));
-                            }
-                            else {
-                                ui.text(im_str!("{:02X?}", chip8_state.memory[col_count * i + j]));
-                            }
-                            ui.same_line(0.0);
-                        }
-                        ui.dummy([0.0, 0.0]);
-                    }
-                });
+            render_gui(&ui, chip8_state);
         }
 
         // Render
@@ -190,7 +123,7 @@ impl ImGuiWrapper {
             .render(
                 &mut *factory,
                 encoder,
-                &mut RenderTargetView::new(render_target.clone()),
+                &mut RenderTargetView::new(render_target),
                 draw_data,
             )
             .unwrap();

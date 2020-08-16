@@ -5,8 +5,8 @@ use ggez::{Context, GameResult};
 
 use rand::Rng;
 
-mod imgui_wrapper;
-use imgui_wrapper::ImGuiWrapper;
+mod gui;
+use gui::ImGuiWrapper;
 
 mod chip8_state;
 use chip8_state::*;
@@ -81,168 +81,13 @@ impl EventHandler for MainState {
                     self.waiting_for_key_press = false;
                 }
             } else {
-                let opcode =
-                    fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter)
-                        .unwrap();
-                let instruction = decode_opcode(opcode);
+                    let opcode =
+                        fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter)
+                            .unwrap();
+                    let instruction = decode_opcode(opcode);
 
-                match instruction {
-                    InstructionSet::ClearScreen => {
-                        // todo
-                    }
-                    InstructionSet::ReturnFromSubroutine => {
-                        self.chip8_state.stack_pointer -= 1;
-                        self.chip8_state.program_counter =
-                            self.chip8_state.stack[self.chip8_state.stack_pointer as usize];
-                    }
-                    InstructionSet::JumpToAddress(address) => {
-                        self.chip8_state.program_counter = address - 2
-                    }
-                    InstructionSet::ExecuteSubroutine(address) => {
-                        self.chip8_state.stack[self.chip8_state.stack_pointer as usize] =
-                            self.chip8_state.program_counter;
-                        self.chip8_state.stack_pointer += 1;
-                        self.chip8_state.program_counter = address - 2;
-                    }
-                    InstructionSet::AddToRegister(index, value) => {
-                        self.chip8_state.v[index as usize] += value
-                    }
-                    InstructionSet::StoreInRegister(index, value) => {
-                        self.chip8_state.v[index as usize] = value
-                    }
-                    InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
-                        self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize]
-                    }
-                    InstructionSet::SkipFollowingIfRegisterIsEqualToValue(index, value) => {
-                        if self.chip8_state.v[index as usize] == value {
-                            self.chip8_state.program_counter += 2;
-                        }
-                    }
-                    InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(index, value) => {
-                        if self.chip8_state.v[index as usize] != value {
-                            self.chip8_state.program_counter += 2;
-                        }
-                    }
-                    InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
-                        if self.chip8_state.v[x as usize] == self.chip8_state.v[y as usize] {
-                            self.chip8_state.program_counter += 2;
-                        }
-                    }
-                    InstructionSet::SetVxToVxOrVy(x, y) => {
-                        self.chip8_state.v[x as usize] |= self.chip8_state.v[y as usize]
-                    }
-                    InstructionSet::SetVxToVxAndVy(x, y) => {
-                        self.chip8_state.v[x as usize] &= self.chip8_state.v[y as usize]
-                    }
-                    InstructionSet::SetVxToVxXorVy(x, y) => {
-                        self.chip8_state.v[x as usize] ^= self.chip8_state.v[y as usize]
-                    }
-                    InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
-                        let sum = self.chip8_state.v[x as usize] as u16
-                            + self.chip8_state.v[y as usize] as u16;
-                        self.chip8_state.v[0xF] = if sum > 255 { 1 } else { 0 };
-                        self.chip8_state.v[x as usize] = (sum & 0x00FF) as u8;
-                    }
-                    InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
-                        self.chip8_state.v[0xF] =
-                            if self.chip8_state.v[x as usize] > self.chip8_state.v[y as usize] {
-                                1
-                            } else {
-                                0
-                            };
-                        self.chip8_state.v[x as usize] -= self.chip8_state.v[y as usize];
-                    }
-                    InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
-                        self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] >> 1;
-                        self.chip8_state.v[0xF] = self.chip8_state.v[x as usize] & 0x01;
-                    }
-                    InstructionSet::SetVxToValueOfVyMinusVx(x, y) => {
-                        self.chip8_state.v[0xF] =
-                            if self.chip8_state.v[y as usize] > self.chip8_state.v[x as usize] {
-                                1
-                            } else {
-                                0
-                            };
-                        self.chip8_state.v[x as usize] =
-                            self.chip8_state.v[y as usize] - self.chip8_state.v[x as usize];
-                    }
-                    InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
-                        self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] << 1;
-                        self.chip8_state.v[0xF] = (self.chip8_state.v[x as usize] >> 7) & 0x01;
-                    }
-                    InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
-                        if self.chip8_state.v[x as usize] != self.chip8_state.v[y as usize] {
-                            self.chip8_state.program_counter += 2;
-                        }
-                    }
-                    InstructionSet::StoreDelayTimerInRegisterVx(index) => {
-                        self.chip8_state.v[index as usize] = self.chip8_state.delay_timer;
-                    }
-                    InstructionSet::WaitForAKeyPress(index) => {
-                        self.waiting_for_key_press = true;
-                        self.key_index_store = index;
-                    }
-                    InstructionSet::SetDelayTimerToVx(index) => {
-                        self.chip8_state.delay_timer = self.chip8_state.v[index as usize];
-                    }
-                    InstructionSet::SetSoundTimerToVx(index) => {
-                        self.chip8_state.sound_timer = self.chip8_state.v[index as usize];
-                    }
-                    InstructionSet::AddVxToRegisterI(index) => {
-                        self.chip8_state.i += self.chip8_state.v[index as usize] as u16;
-                    }
-                    InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
-                        //todo
-                    }
-                    InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
-                        //todo
-                    }
-                    InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(
-                        index,
-                    ) => {
-                        //todo
-                    }
-                    InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(
-                        index,
-                    ) => {
-                        //todo
-                    }
-                    InstructionSet::DrawSprite(x, y, sprite_data) => {
-                        //todo
-                    }
-                    InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(
-                        index,
-                    ) => {
-                        if let Some(code) = self.chip8_state.chip8_key {
-                            if code != self.chip8_state.v[index as usize] {
-                                self.chip8_state.program_counter += 2;
-                            }
-                        }
-                    }
-                    InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(
-                        index,
-                    ) => {
-                        if let Some(code) = self.chip8_state.chip8_key {
-                            if code == self.chip8_state.v[index as usize] {
-                                self.chip8_state.program_counter += 2;
-                            }
-                        }
-                    }
-                    InstructionSet::StoreAddressInRegisterI(address) => {
-                        self.chip8_state.i = address;
-                    }
-                    InstructionSet::SetVxToRandomNumberWithAMaskOf(index, mask) => {
-                        let mut rng = rand::thread_rng();
-                        self.chip8_state.v[index as usize] = rng.gen_range(0, 255) & mask;
-
-                    }
-                    _ => {
-                        if opcode != 0 {
-                            println!("[{:04X?}]: {}", opcode, instruction.to_string());
-                        }
-                    }
-                }
-
+                    self.execute_instruction(instruction, opcode);
+            
                 if opcode != 0 {
                     //println!("[{:04X?}]: {}", opcode, instruction.to_string());
                 }
@@ -255,7 +100,7 @@ impl EventHandler for MainState {
                     self.chip8_state.delay_timer -= 1;
                 }
 
-                if (self.chip8_state.sound_timer > 0) {
+                if self.chip8_state.sound_timer > 0 {
                     self.chip8_state.sound_timer -= 1;
                 }
 
@@ -355,6 +200,166 @@ impl EventHandler for MainState {
     }
 }
 
+impl MainState {
+    fn execute_instruction(&mut self, instruction: InstructionSet, opcode: u16) {
+        match instruction {
+            InstructionSet::ClearScreen => {
+                // todo
+            }
+            InstructionSet::ReturnFromSubroutine => {
+                self.chip8_state.stack_pointer -= 1;
+                self.chip8_state.program_counter =
+                    self.chip8_state.stack[self.chip8_state.stack_pointer as usize];
+            }
+            InstructionSet::JumpToAddress(address) => {
+                self.chip8_state.program_counter = address - 2
+            }
+            InstructionSet::ExecuteSubroutine(address) => {
+                self.chip8_state.stack[self.chip8_state.stack_pointer as usize] =
+                    self.chip8_state.program_counter;
+                self.chip8_state.stack_pointer += 1;
+                self.chip8_state.program_counter = address - 2;
+            }
+            InstructionSet::AddToRegister(index, value) => {
+                self.chip8_state.v[index as usize] += value
+            }
+            InstructionSet::StoreInRegister(index, value) => {
+                self.chip8_state.v[index as usize] = value
+            }
+            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
+                self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize]
+            }
+            InstructionSet::SkipFollowingIfRegisterIsEqualToValue(index, value) => {
+                if self.chip8_state.v[index as usize] == value {
+                    self.chip8_state.program_counter += 2;
+                }
+            }
+            InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(index, value) => {
+                if self.chip8_state.v[index as usize] != value {
+                    self.chip8_state.program_counter += 2;
+                }
+            }
+            InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
+                if self.chip8_state.v[x as usize] == self.chip8_state.v[y as usize] {
+                    self.chip8_state.program_counter += 2;
+                }
+            }
+            InstructionSet::SetVxToVxOrVy(x, y) => {
+                self.chip8_state.v[x as usize] |= self.chip8_state.v[y as usize]
+            }
+            InstructionSet::SetVxToVxAndVy(x, y) => {
+                self.chip8_state.v[x as usize] &= self.chip8_state.v[y as usize]
+            }
+            InstructionSet::SetVxToVxXorVy(x, y) => {
+                self.chip8_state.v[x as usize] ^= self.chip8_state.v[y as usize]
+            }
+            InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
+                let sum = self.chip8_state.v[x as usize] as u16
+                    + self.chip8_state.v[y as usize] as u16;
+                self.chip8_state.v[0xF] = if sum > 255 { 1 } else { 0 };
+                self.chip8_state.v[x as usize] = (sum & 0x00FF) as u8;
+            }
+            InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
+                self.chip8_state.v[0xF] =
+                    if self.chip8_state.v[x as usize] > self.chip8_state.v[y as usize] {
+                        1
+                    } else {
+                        0
+                    };
+                self.chip8_state.v[x as usize] -= self.chip8_state.v[y as usize];
+            }
+            InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
+                self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] >> 1;
+                self.chip8_state.v[0xF] = self.chip8_state.v[x as usize] & 0x01;
+            }
+            InstructionSet::SetVxToValueOfVyMinusVx(x, y) => {
+                self.chip8_state.v[0xF] =
+                    if self.chip8_state.v[y as usize] > self.chip8_state.v[x as usize] {
+                        1
+                    } else {
+                        0
+                    };
+                self.chip8_state.v[x as usize] =
+                    self.chip8_state.v[y as usize] - self.chip8_state.v[x as usize];
+            }
+            InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
+                self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] << 1;
+                self.chip8_state.v[0xF] = (self.chip8_state.v[x as usize] >> 7) & 0x01;
+            }
+            InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
+                if self.chip8_state.v[x as usize] != self.chip8_state.v[y as usize] {
+                    self.chip8_state.program_counter += 2;
+                }
+            }
+            InstructionSet::StoreDelayTimerInRegisterVx(index) => {
+                self.chip8_state.v[index as usize] = self.chip8_state.delay_timer;
+            }
+            InstructionSet::WaitForAKeyPress(index) => {
+                self.waiting_for_key_press = true;
+                self.key_index_store = index;
+            }
+            InstructionSet::SetDelayTimerToVx(index) => {
+                self.chip8_state.delay_timer = self.chip8_state.v[index as usize];
+            }
+            InstructionSet::SetSoundTimerToVx(index) => {
+                self.chip8_state.sound_timer = self.chip8_state.v[index as usize];
+            }
+            InstructionSet::AddVxToRegisterI(index) => {
+                self.chip8_state.i += self.chip8_state.v[index as usize] as u16;
+            }
+            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
+                //todo
+            }
+            InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
+                //todo
+            }
+            InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(
+                index,
+            ) => {
+                //todo
+            }
+            InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(
+                index,
+            ) => {
+                //todo
+            }
+            InstructionSet::DrawSprite(x, y, sprite_data) => {
+                //todo
+            }
+            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(
+                index,
+            ) => {
+                if let Some(code) = self.chip8_state.chip8_key {
+                    if code != self.chip8_state.v[index as usize] {
+                        self.chip8_state.program_counter += 2;
+                    }
+                }
+            }
+            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(
+                index,
+            ) => {
+                if let Some(code) = self.chip8_state.chip8_key {
+                    if code == self.chip8_state.v[index as usize] {
+                        self.chip8_state.program_counter += 2;
+                    }
+                }
+            }
+            InstructionSet::StoreAddressInRegisterI(address) => {
+                self.chip8_state.i = address;
+            }
+            InstructionSet::SetVxToRandomNumberWithAMaskOf(index, mask) => {
+                let mut rng = rand::thread_rng();
+                self.chip8_state.v[index as usize] = rng.gen_range(0, 255) & mask;
+            }
+            _ => {
+                if opcode != 0 {
+                    println!("[{:04X?}]: {}", opcode, instruction.to_string());
+                }
+            }
+        }
+    }
+}
+
 fn main() -> ggez::GameResult {
     let matches = setup_cmd_program_arguments();
 
@@ -362,7 +367,7 @@ fn main() -> ggez::GameResult {
     println!("ROM file path you provided '{}'", rom_path);
 
     let rom_data =
-        read_file_as_bytes(rom_path.as_str(), MEMORY_SIZE - CHIP8_RESERVED_MEMORY_SIZE).unwrap();
+        read_file_as_bytes(rom_path.as_str()).unwrap();
 
     let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
         .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))

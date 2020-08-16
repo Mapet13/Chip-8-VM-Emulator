@@ -1,9 +1,9 @@
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{Read, Write},
 };
 
-pub fn read_file_as_bytes(filename: &str, max_size: usize) -> Result<Vec<u8>, String> {
+pub fn read_file_as_bytes(filename: &str) -> Result<Vec<u8>, String> {
     let mut f = File::open(&filename).expect("no file found");
     let mut buffer = Vec::<u8>::new();
     match f.read_to_end(&mut buffer) {
