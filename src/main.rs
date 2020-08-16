@@ -18,9 +18,6 @@ use utils::*;
 mod instructions;
 use instructions::*;
 
-const SCALE: usize = 16;
-const DISPLAY_SIZE: [usize; 2] = [64, 32];
-
 fn write_rom_data_to_memory(memory: &mut [u8; MEMORY_SIZE], rom_data: &[u8]) {
     byte_copy(
         rom_data,
@@ -52,8 +49,8 @@ impl MainState {
                 memory: [0 as u8; MEMORY_SIZE],
                 v: [0 as u8; 16],
                 i: 0,
-                _delay_timer: 0,
-                _sound_timer: 0,
+                delay_timer: 0,
+                sound_timer: 0,
                 program_counter: 0x200,
                 stack_pointer: 0,
                 stack: [0 as u16; 16],
@@ -231,7 +228,9 @@ fn main() -> ggez::GameResult {
     let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
         .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))
         .window_mode(
-            conf::WindowMode::default().resizable(true), /*.dimensions(750.0, 500.0)*/
+            conf::WindowMode::default()
+            .resizable(false)
+            .dimensions((DISPLAY_SIZE[0] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[0], (DISPLAY_SIZE[1] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[1])
         );
     let (ref mut ctx, event_loop) = &mut cb.build()?;
 
