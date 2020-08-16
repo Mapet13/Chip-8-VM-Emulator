@@ -163,15 +163,22 @@ impl ImGuiWrapper {
                 )
                 .flags(flags)
                 .build(&ui, || {
-                    let col_count = memory_table_window_size[0] as usize / 20;
+                    let col_count = memory_table_window_size[0] as usize / 22;
                     let table_count = chip8_state.memory.len() / col_count;
 
+
                     for i in 0..table_count {
-                        ui.text(im_str!("{:02X?}", chip8_state.memory[col_count * i]));
                         for j in 0..col_count {
+                            let index = col_count * i + j;
+                            if index as u16 == chip8_state.program_counter || index as u16 == chip8_state.program_counter + 1 {
+                                ui.text_colored([1.0, 0.0, 0.5, 1.0], im_str!("{:02X?}", chip8_state.memory[col_count * i + j]));
+                            }
+                            else {
+                                ui.text(im_str!("{:02X?}", chip8_state.memory[col_count * i + j]));
+                            }
                             ui.same_line(0.0);
-                            ui.text(im_str!("{:02X?}", chip8_state.memory[col_count * i + j]));
                         }
+                        ui.dummy([0.0, 0.0]);
                     }
                 });
         }
