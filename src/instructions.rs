@@ -194,7 +194,7 @@ impl ToString for InstructionSet {
             }
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(x) => {
                 format!(
-                    "kip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Not Pressed",
+                    "Skip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Not Pressed",
                     x
                 )
             }
