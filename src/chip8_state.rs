@@ -15,4 +15,5 @@ pub struct Chip8State {
     pub program_counter: u16,
     pub stack_pointer: u8,
     pub stack: [u16; 16],
+    pub chip8_key: Option<u8>,
 }
