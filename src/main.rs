@@ -65,24 +65,35 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        let opcode = fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter).unwrap();
+        let opcode =
+            fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter).unwrap();
         let instruction = decode_opcode(opcode);
 
         match instruction {
             InstructionSet::ClearScreen => {}
             InstructionSet::ReturnFromSubroutine => {
                 self.chip8_state.stack_pointer -= 1;
-                self.chip8_state.program_counter = self.chip8_state.stack[self.chip8_state.stack_pointer as usize];
+                self.chip8_state.program_counter =
+                    self.chip8_state.stack[self.chip8_state.stack_pointer as usize];
             }
-            InstructionSet::JumpToAddress(address) => self.chip8_state.program_counter = address - 2,
+            InstructionSet::JumpToAddress(address) => {
+                self.chip8_state.program_counter = address - 2
+            }
             InstructionSet::ExecuteSubroutine(address) => {
-                self.chip8_state.stack[self.chip8_state.stack_pointer as usize] = self.chip8_state.program_counter;
+                self.chip8_state.stack[self.chip8_state.stack_pointer as usize] =
+                    self.chip8_state.program_counter;
                 self.chip8_state.stack_pointer += 1;
                 self.chip8_state.program_counter = address - 2;
             }
-            InstructionSet::AddToRegister(index, value) => self.chip8_state.v[index as usize] += value,
-            InstructionSet::StoreInRegister(index, value) => self.chip8_state.v[index as usize] = value,
-            InstructionSet::AddVxToRegisterI(index) => self.chip8_state.i += self.chip8_state.v[index as usize] as u16,
+            InstructionSet::AddToRegister(index, value) => {
+                self.chip8_state.v[index as usize] += value
+            }
+            InstructionSet::StoreInRegister(index, value) => {
+                self.chip8_state.v[index as usize] = value
+            }
+            InstructionSet::AddVxToRegisterI(index) => {
+                self.chip8_state.i += self.chip8_state.v[index as usize] as u16
+            }
             InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
                 self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize]
             }
@@ -101,20 +112,28 @@ impl EventHandler for MainState {
                     self.chip8_state.program_counter += 2;
                 }
             }
-            InstructionSet::SetVxToVxOrVy(x, y) => self.chip8_state.v[x as usize] |= self.chip8_state.v[y as usize],
-            InstructionSet::SetVxToVxAndVy(x, y) => self.chip8_state.v[x as usize] &= self.chip8_state.v[y as usize],
-            InstructionSet::SetVxToVxXorVy(x, y) => self.chip8_state.v[x as usize] ^= self.chip8_state.v[y as usize],
+            InstructionSet::SetVxToVxOrVy(x, y) => {
+                self.chip8_state.v[x as usize] |= self.chip8_state.v[y as usize]
+            }
+            InstructionSet::SetVxToVxAndVy(x, y) => {
+                self.chip8_state.v[x as usize] &= self.chip8_state.v[y as usize]
+            }
+            InstructionSet::SetVxToVxXorVy(x, y) => {
+                self.chip8_state.v[x as usize] ^= self.chip8_state.v[y as usize]
+            }
             InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
-                let sum = self.chip8_state.v[x as usize] as u16 + self.chip8_state.v[y as usize] as u16;
+                let sum =
+                    self.chip8_state.v[x as usize] as u16 + self.chip8_state.v[y as usize] as u16;
                 self.chip8_state.v[0xF] = if sum > 255 { 1 } else { 0 };
                 self.chip8_state.v[x as usize] = (sum & 0x00FF) as u8;
             }
             InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
-                self.chip8_state.v[0xF] = if self.chip8_state.v[x as usize] > self.chip8_state.v[y as usize] {
-                    1
-                } else {
-                    0
-                };
+                self.chip8_state.v[0xF] =
+                    if self.chip8_state.v[x as usize] > self.chip8_state.v[y as usize] {
+                        1
+                    } else {
+                        0
+                    };
                 self.chip8_state.v[x as usize] -= self.chip8_state.v[y as usize];
             }
             InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
@@ -122,12 +141,14 @@ impl EventHandler for MainState {
                 self.chip8_state.v[0xF] = self.chip8_state.v[x as usize] & 0x01;
             }
             InstructionSet::SetVxToValueOfVyMinusVx(x, y) => {
-                self.chip8_state.v[0xF] = if self.chip8_state.v[y as usize] > self.chip8_state.v[x as usize] {
-                    1
-                } else {
-                    0
-                };
-                self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] - self.chip8_state.v[x as usize];
+                self.chip8_state.v[0xF] =
+                    if self.chip8_state.v[y as usize] > self.chip8_state.v[x as usize] {
+                        1
+                    } else {
+                        0
+                    };
+                self.chip8_state.v[x as usize] =
+                    self.chip8_state.v[y as usize] - self.chip8_state.v[x as usize];
             }
             InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
                 self.chip8_state.v[x as usize] = self.chip8_state.v[y as usize] << 1;
@@ -158,7 +179,8 @@ impl EventHandler for MainState {
 
         // Render game ui
         {
-            self.imgui_wrapper.render(ctx, self.hidpi_factor, &self.chip8_state);
+            self.imgui_wrapper
+                .render(ctx, self.hidpi_factor, &self.chip8_state);
         }
 
         graphics::present(ctx)?;
@@ -227,11 +249,10 @@ fn main() -> ggez::GameResult {
 
     let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
         .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))
-        .window_mode(
-            conf::WindowMode::default()
-            .resizable(false)
-            .dimensions((DISPLAY_SIZE[0] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[0], (DISPLAY_SIZE[1] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[1])
-        );
+        .window_mode(conf::WindowMode::default().resizable(false).dimensions(
+            (DISPLAY_SIZE[0] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[0],
+            (DISPLAY_SIZE[1] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[1],
+        ));
     let (ref mut ctx, event_loop) = &mut cb.build()?;
 
     let hidpi_factor = event_loop.get_primary_monitor().get_hidpi_factor() as f32;

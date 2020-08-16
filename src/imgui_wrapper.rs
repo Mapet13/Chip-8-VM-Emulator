@@ -142,8 +142,10 @@ impl ImGuiWrapper {
                     ui.text(im_str!("stack pointer: {:02X?}", chip8_state.stack_pointer));
                     ui.text(im_str!("delay timer: {:02X?}", chip8_state.delay_timer));
                     ui.text(im_str!("sound timer: {:02X?}", chip8_state.sound_timer));
-                    ui.text(im_str!("program counter: {:02X?}", chip8_state.program_counter));
-
+                    ui.text(im_str!(
+                        "program counter: {:02X?}",
+                        chip8_state.program_counter
+                    ));
                 });
 
             let memory_table_window_size = [
