@@ -7,5 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = { version = "0.34.1", features = ["bundled", "static-link"] }
-clap = "2.33.2"
+clap = "2.33.3"
+
+ggez = "0.5.1"
+gfx_core = "0.9.2"
+gfx_device_gl = "0.16.2"
+imgui = "0.4"
+imgui-gfx-renderer = "0.4"

@@ -1,6 +1,12 @@
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
+
+use ggez::conf;
+use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
+use ggez::graphics;
+use ggez::nalgebra as na;
+use ggez::{Context, GameResult};
+
+mod imgui_wrapper;
+use imgui_wrapper::ImGuiWrapper;
 
 mod setup;
 use setup::*;
@@ -31,123 +37,106 @@ fn fetch_opcode(memory: &[u8], pc: u16) -> Result<u16, ()> {
     Ok((memory[pc as usize] as u16) << 8 | memory[pc as usize + 1] as u16)
 }
 
-fn main() -> Result<(), String> {
-    let matches = setup_cmd_program_arguments();
+struct MainState {
+    imgui_wrapper: ImGuiWrapper,
+    hidpi_factor: f32,
+    memory: [u8; MEMORY_SIZE] ,
+     v: [u8; 16] ,
+     i: u16 ,
+     _delay_timer: u8,
+     _sound_timer: u8,
+ program_counter: u16,
+ stack_pointer: u8 ,
+ stack: [u16; 16] ,
+}
 
-    let rom_path = get_rom_path(matches)?;
-    println!("ROM file path you provided '{}'", rom_path);
+impl MainState {
+    fn new(mut ctx: &mut Context, hidpi_factor: f32, rom_data: &[u8]) -> GameResult<MainState> {
+        let imgui_wrapper = ImGuiWrapper::new(&mut ctx);
+        let mut s = MainState {
+            imgui_wrapper,
+            hidpi_factor,
+            memory: [0 as u8; MEMORY_SIZE],
+            v: [0 as u8; 16],
+            i: 0,
+            _delay_timer: 0,
+            _sound_timer: 0,
+            program_counter: 0x200,
+            stack_pointer: 0,
+            stack: [0 as u16; 16]
+        };
 
-    let rom_data = read_file_as_bytes(rom_path.as_str(), MEMORY_SIZE - CHIP8_RESERVED_MEMORY_SIZE)?;
+        write_rom_data_to_memory(&mut s.memory, rom_data);
 
-    let mut memory: [u8; MEMORY_SIZE] = [0 as u8; MEMORY_SIZE];
-    let mut v: [u8; 16] = [0 as u8; 16];
-    let mut i: u16 = 0;
-    let _delay_timer: u8;
-    let _sound_timer: u8;
-    let mut program_counter: u16 = 0x200;
-    let mut stack_pointer: u8 = 0;
-    let mut stack: [u16; 16] = [0 as u16; 16];
+        Ok(s)
+    }
+}
 
-    write_rom_data_to_memory(&mut memory, &rom_data);
+impl EventHandler for MainState {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        
 
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-
-    let window = video_subsystem
-        .window(
-            "rust-sdl2 demo: Video",
-            (DISPLAY_SIZE[0] * SCALE) as u32,
-            (DISPLAY_SIZE[1] * SCALE) as u32,
-        )
-        .position_centered()
-        .opengl()
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-    canvas.present();
-    let mut event_pump = sdl_context.event_pump()?;
-
-    'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => {}
-            }
-        }
-
-        let opcode;
-        match fetch_opcode(&memory, program_counter) {
-            Err(_) => break 'running,
-            Ok(x) => opcode = x,
-        }
+        let opcode = fetch_opcode(&self.memory, self.program_counter).unwrap();
         let instruction = decode_opcode(opcode);
 
         match instruction {
             InstructionSet::ClearScreen => {}
             InstructionSet::ReturnFromSubroutine => {
-                stack_pointer -= 1;
-                program_counter = stack[stack_pointer as usize];      
+                self.stack_pointer -= 1;
+                self.program_counter = self.stack[self.stack_pointer as usize];      
             }
-            InstructionSet::JumpToAddress(address) => program_counter = address - 2,
+            InstructionSet::JumpToAddress(address) => self.program_counter = address - 2,
             InstructionSet::ExecuteSubroutine(address) => {
-                stack[stack_pointer as usize] = program_counter;
-                stack_pointer += 1;
-                program_counter = address - 2;
+                self.stack[self.stack_pointer as usize] = self.program_counter;
+                self.stack_pointer += 1;
+                self.program_counter = address - 2;
             }
-            InstructionSet::AddToRegister(index, value) => v[index as usize] += value,
-            InstructionSet::StoreInRegister(index, value) => v[index as usize] = value,
-            InstructionSet::AddVxToRegisterI(index) => i += v[index as usize] as u16,
-            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => v[x as usize] = v[y as usize],
+            InstructionSet::AddToRegister(index, value) => self.v[index as usize] += value,
+            InstructionSet::StoreInRegister(index, value) => self.v[index as usize] = value,
+            InstructionSet::AddVxToRegisterI(index) => self.i += self.v[index as usize] as u16,
+            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => self.v[x as usize] = self.v[y as usize],
             InstructionSet::SkipFollowingIfRegisterIsEqualToValue(index, value) => {
-                if v[index as usize] == value {
-                    program_counter += 2;
+                if self.v[index as usize] == value {
+                    self.program_counter += 2;
                 }
             }
             InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(index, value) => {
-                if v[index as usize] != value {
-                    program_counter += 2;
+                if self.v[index as usize] != value {
+                    self.program_counter += 2;
                 }
             }
             InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
-                if v[x as usize] == v[y as usize] {
-                    program_counter += 2;
+                if self.v[x as usize] == self.v[y as usize] {
+                    self.program_counter += 2;
                 }
             }
-            InstructionSet::SetVxToVxOrVy(x, y) => v[x as usize] |= v[y as usize],
-            InstructionSet::SetVxToVxAndVy(x, y) => v[x as usize] &= v[y as usize],
-            InstructionSet::SetVxToVxXorVy(x, y) => v[x as usize] ^= v[y as usize],
+            InstructionSet::SetVxToVxOrVy(x, y) => self.v[x as usize] |= self.v[y as usize],
+            InstructionSet::SetVxToVxAndVy(x, y) => self.v[x as usize] &= self.v[y as usize],
+            InstructionSet::SetVxToVxXorVy(x, y) => self.v[x as usize] ^= self.v[y as usize],
             InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
-                let sum = v[x as usize] as u16 + v[y as usize] as u16;
-                v[0xF] = if sum > 255 { 1 } else { 0 };
-                v[x as usize] = (sum & 0x00FF) as u8;
+                let sum = self.v[x as usize] as u16 + self.v[y as usize] as u16;
+                self.v[0xF] = if sum > 255 { 1 } else { 0 };
+                self.v[x as usize] = (sum & 0x00FF) as u8;
             }
             InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
-                v[0xF] = if v[x as usize] > v[y as usize] { 1 } else { 0 };
-                v[x as usize] -= v[y as usize];
+                self.v[0xF] = if self.v[x as usize] > self.v[y as usize] { 1 } else { 0 };
+                self.v[x as usize] -= self.v[y as usize];
             }
             InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
-                v[x as usize] = v[y as usize] >> 1;
-                v[0xF] = v[x as usize] & 0x01;
+                self.v[x as usize] = self.v[y as usize] >> 1;
+                self.v[0xF] = self.v[x as usize] & 0x01;
             }
             InstructionSet::SetVxToValueOfVyMinusVx(x, y) => {
-                v[0xF] = if v[y as usize] > v[x as usize] { 1 } else { 0 };
-                v[x as usize] = v[y as usize] - v[x as usize];
+                self.v[0xF] = if self.v[y as usize] > self.v[x as usize] { 1 } else { 0 };
+                self.v[x as usize] = self.v[y as usize] - self.v[x as usize];
             }
             InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
-                v[x as usize] = v[y as usize] << 1;
-                v[0xF] = (v[x as usize] >> 7) & 0x01;
+                self.v[x as usize] = self.v[y as usize] << 1;
+                self.v[0xF] = (self.v[x as usize] >> 7) & 0x01;
             }
             InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
-                if v[x as usize] != v[y as usize] {
-                    program_counter += 2;
+                if self.v[x as usize] != self.v[y as usize] {
+                    self.program_counter += 2;
                 }
             },
             _ => {}
@@ -157,11 +146,102 @@ fn main() -> Result<(), String> {
             println!("[{:04X?}]: {}", opcode, instruction.to_string());
         }
 
-        program_counter += 2;
+        self.program_counter += 2;
+        
 
-        canvas.clear();
-        canvas.present();
+        Ok(())
     }
 
-    Ok(())
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        graphics::clear(ctx, graphics::BLACK);
+
+        // Render game stuff
+        {
+            
+        }
+
+        // Render game ui
+        {
+            self.imgui_wrapper.render(ctx, self.hidpi_factor);
+        }
+
+        graphics::present(ctx)?;
+        Ok(())
+    }
+
+    fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        self.imgui_wrapper.update_mouse_pos(x, y);
+    }
+
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: MouseButton,
+        _x: f32,
+        _y: f32,
+    ) {
+        self.imgui_wrapper.update_mouse_down((
+            button == MouseButton::Left,
+            button == MouseButton::Right,
+            button == MouseButton::Middle,
+        ));
+    }
+
+    fn mouse_button_up_event(
+        &mut self,
+        _ctx: &mut Context,
+        _button: MouseButton,
+        _x: f32,
+        _y: f32,
+    ) {
+        self.imgui_wrapper.update_mouse_down((false, false, false));
+    }
+
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: KeyCode,
+        keymods: KeyMods,
+        _repeat: bool,
+    ) {
+        self.imgui_wrapper.update_key_down(keycode, keymods);
+    }
+
+    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods) {
+        self.imgui_wrapper.update_key_up(keycode, keymods);
+    }
+
+    fn text_input_event(&mut self, _ctx: &mut Context, val: char) {
+        self.imgui_wrapper.update_text(val);
+    }
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
+        self.imgui_wrapper.update_scroll(x, y);
+    }
+}
+
+
+
+fn main() -> ggez::GameResult {
+    let matches = setup_cmd_program_arguments();
+
+    let rom_path = get_rom_path(matches).unwrap().;
+    println!("ROM file path you provided '{}'", rom_path);
+
+    let rom_data = read_file_as_bytes(rom_path.as_str(), MEMORY_SIZE - CHIP8_RESERVED_MEMORY_SIZE).unwrap();
+
+
+    let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
+        .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))
+        .window_mode(
+            conf::WindowMode::default().resizable(true), /*.dimensions(750.0, 500.0)*/
+        );
+    let (ref mut ctx, event_loop) = &mut cb.build()?;
+
+    let hidpi_factor = event_loop.get_primary_monitor().get_hidpi_factor() as f32;
+    println!("main hidpi_factor = {}", hidpi_factor);
+
+    let state = &mut MainState::new(ctx, hidpi_factor, &rom_data)?;
+
+    event::run(ctx, event_loop, state)
 }
