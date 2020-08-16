@@ -286,6 +286,7 @@ dependencies = [
  "ggez",
  "imgui",
  "imgui-gfx-renderer",
+ "rand 0.7.3",
 ]
 
 [[package]]
