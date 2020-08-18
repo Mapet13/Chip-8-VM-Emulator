@@ -67,9 +67,18 @@ impl MainState {
             },
         };
 
+        write_font_data_to_memory(&mut s.chip8_state.memory);
         write_rom_data_to_memory(&mut s.chip8_state.memory, rom_data);
 
         Ok(s)
+    }
+}
+
+fn write_font_data_to_memory(memory: &mut [u8; MEMORY_SIZE]) {
+    for i in 0..FONTS_SPRITES.len() {
+        for j in 0..FONTS_SPRITES[i].len() {
+            memory[i * FONTS_SPRITES[i].len() + j] = FONTS_SPRITES[i][j];
+        }
     }
 }
 
@@ -84,13 +93,12 @@ impl EventHandler for MainState {
                     self.waiting_for_key_press = false;
                 }
             } else {
-                    let opcode =
-                        fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter)
-                            .unwrap();
-                    let instruction = decode_opcode(opcode);
+                let opcode =
+                    fetch_opcode(&self.chip8_state.memory, self.chip8_state.program_counter)
+                        .unwrap();
+                let instruction = decode_opcode(opcode);
 
-                    self.execute_instruction(instruction, opcode);
-            
+                self.execute_instruction(instruction, opcode);
                 if opcode != 0 {
                     //println!("[{:04X?}]: {}", opcode, instruction.to_string());
                 }
@@ -257,8 +265,8 @@ impl MainState {
                 self.chip8_state.v[x as usize] ^= self.chip8_state.v[y as usize]
             }
             InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
-                let sum = self.chip8_state.v[x as usize] as u16
-                    + self.chip8_state.v[y as usize] as u16;
+                let sum =
+                    self.chip8_state.v[x as usize] as u16 + self.chip8_state.v[y as usize] as u16;
                 self.chip8_state.v[0xF] = if sum > 255 { 1 } else { 0 };
                 self.chip8_state.v[x as usize] = (sum & 0x00FF) as u8;
             }
@@ -310,37 +318,42 @@ impl MainState {
             InstructionSet::AddVxToRegisterI(index) => {
                 self.chip8_state.i += self.chip8_state.v[index as usize] as u16;
             }
-            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
-                //todo
+            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => { // hope it's a correct implementation
+                let v = self.chip8_state.v[index as usize] as usize;
+                self.chip8_state.i = (FONTS_SPRITES[v].len() *  v) as u16;
             }
             InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
-                //todo
+                let v = self.chip8_state.v[index as usize];
+                let hundreds_digit = v / 100;
+                let tens_digit = (v - hundreds_digit*100) / 10;
+                let units_digit = (v - hundreds_digit*100) - (tens_digit*10);
+                self.chip8_state.memory[self.chip8_state.i as usize] = units_digit;
+                self.chip8_state.memory[self.chip8_state.i as usize + 1] = tens_digit;
+                self.chip8_state.memory[self.chip8_state.i as usize + 2] = hundreds_digit;
             }
-            InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(
-                index,
-            ) => {
-                //todo
+            InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(index) => {
+                for i in 0..(index+1) {
+                    self.chip8_state.memory[self.chip8_state.i as usize + i as usize] = self.chip8_state.v[i as usize];
+                } 
+                self.chip8_state.i += index as u16 + 1;
             }
-            InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(
-                index,
-            ) => {
-                //todo
+            InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(index) => {
+                for i in 0..(index+1) {
+                    self.chip8_state.v[i as usize] = self.chip8_state.memory[self.chip8_state.i as usize + i as usize];
+                } 
+                self.chip8_state.i += index as u16 + 1;
             }
             InstructionSet::DrawSprite(x, y, sprite_data) => {
                 //todo
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(
-                index,
-            ) => {
+            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(index) => {
                 if let Some(code) = self.chip8_state.chip8_key {
                     if code != self.chip8_state.v[index as usize] {
                         self.chip8_state.program_counter += 2;
                     }
                 }
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(
-                index,
-            ) => {
+            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(index) => {
                 if let Some(code) = self.chip8_state.chip8_key {
                     if code == self.chip8_state.v[index as usize] {
                         self.chip8_state.program_counter += 2;
@@ -369,8 +382,7 @@ fn main() -> ggez::GameResult {
     let rom_path = get_rom_path(matches).unwrap();
     println!("ROM file path you provided '{}'", rom_path);
 
-    let rom_data =
-        read_file_as_bytes(rom_path.as_str()).unwrap();
+    let rom_data = read_file_as_bytes(rom_path.as_str()).unwrap();
 
     let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
         .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))
