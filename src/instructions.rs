@@ -125,7 +125,7 @@ impl ToString for InstructionSet {
             }
             InstructionSet::JumpToAddressWithV0Offset(address) => {
                 format!(
-                    "Jump To Address [{:03X?}] mWith V0 Offset",
+                    "Jump To Address [{:03X?}] With V0 Offset",
                      address
                 )
             }

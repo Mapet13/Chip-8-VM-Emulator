@@ -30,7 +30,7 @@ fn render_register_info_window(ui: &Ui, chip8_state: &Chip8State, flags: WindowF
             ui.text(im_str!("Main Registers: "));
             ui.separator();
             for i in 0..chip8_state.v.len() {
-                ui.text(im_str!("{:02}: {:02X?}", i, chip8_state.v[i]));
+                ui.text(im_str!("{:02X?}: {:02X?}", i, chip8_state.v[i]));
             }
             ui.separator();
             ui.text(im_str!("Other Registers: "));
