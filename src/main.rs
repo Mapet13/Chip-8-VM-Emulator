@@ -107,6 +107,7 @@ impl EventHandler for MainState {
 
                 if let Some(code) = self.chip8_state.chip8_key {
                     println!("Key Pressed: {:02X?}", code);
+                    self.chip8_state.chip8_key = None;
                 }
 
                 if self.chip8_state.delay_timer > 0 {
@@ -198,22 +199,22 @@ impl EventHandler for MainState {
         _repeat: bool,
     ) {
         self.chip8_state.chip8_key = match keycode {
-            KeyCode::Key1 => Some(0),
-            KeyCode::Key2 => Some(1),
-            KeyCode::Key3 => Some(2),
-            KeyCode::Key4 => Some(3),
-            KeyCode::Q => Some(4),
-            KeyCode::W => Some(5),
-            KeyCode::E => Some(6),
-            KeyCode::R => Some(7),
-            KeyCode::A => Some(8),
-            KeyCode::S => Some(9),
-            KeyCode::D => Some(10),
-            KeyCode::F => Some(11),
-            KeyCode::Z => Some(12),
-            KeyCode::X => Some(13),
-            KeyCode::C => Some(14),
-            KeyCode::V => Some(15),
+            KeyCode::Key1 => Some(0x1),
+            KeyCode::Key2 => Some(0x2),
+            KeyCode::Key3 => Some(0x3),
+            KeyCode::Key4 => Some(0xC),
+            KeyCode::Q => Some(0x4),
+            KeyCode::W => Some(0x5),
+            KeyCode::E => Some(0x6),
+            KeyCode::R => Some(0xD),
+            KeyCode::A => Some(0x7),
+            KeyCode::S => Some(0x8),
+            KeyCode::D => Some(0x9),
+            KeyCode::F => Some(0xE),
+            KeyCode::Z => Some(0xA),
+            KeyCode::X => Some(0x0),
+            KeyCode::C => Some(0xB),
+            KeyCode::V => Some(0xF),
             _ => None,
         };
 
