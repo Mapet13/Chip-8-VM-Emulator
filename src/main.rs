@@ -44,6 +44,7 @@ struct MainState {
     chip8_state: Chip8State,
     waiting_for_key_press: bool,
     key_index_store: u8,
+    display_data: [bool; DISPLAY_SIZE[0] * DISPLAY_SIZE[1]],
 }
 
 impl MainState {
@@ -54,6 +55,7 @@ impl MainState {
             hidpi_factor,
             waiting_for_key_press: false,
             key_index_store: 0x00,
+            display_data: [false; DISPLAY_SIZE[0] * DISPLAY_SIZE[1]],
             chip8_state: Chip8State {
                 memory: [0 as u8; MEMORY_SIZE],
                 v: [0 as u8; 16],
@@ -128,7 +130,27 @@ impl EventHandler for MainState {
         graphics::clear(ctx, graphics::BLACK);
 
         // Render game stuff
-        {}
+        {
+            for x in 0..DISPLAY_SIZE[0] {
+                for y in 0..DISPLAY_SIZE[1] {
+                    if self.display_data[y * DISPLAY_SIZE[0] + x] {
+                        let rect = graphics::Rect::new(
+                            (x * SCALE) as f32,
+                            (y * SCALE) as f32,
+                            (SCALE) as f32,
+                            (SCALE) as f32,
+                        );
+                        let r = graphics::Mesh::new_rectangle(
+                            ctx,
+                            graphics::DrawMode::Fill(graphics::FillOptions::DEFAULT),
+                            rect,
+                            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                        )?;
+                        graphics::draw(ctx, &r, graphics::DrawParam::default())?;
+                    }
+                }
+            }
+        }
 
         // Render game ui
         {
@@ -215,7 +237,9 @@ impl MainState {
     fn execute_instruction(&mut self, instruction: InstructionSet, opcode: u16) {
         match instruction {
             InstructionSet::ClearScreen => {
-                // todo
+                for i in 0..self.display_data.len() {
+                    self.display_data[i] = false;
+                }
             }
             InstructionSet::ReturnFromSubroutine => {
                 self.chip8_state.stack_pointer -= 1;
@@ -318,33 +342,60 @@ impl MainState {
             InstructionSet::AddVxToRegisterI(index) => {
                 self.chip8_state.i += self.chip8_state.v[index as usize] as u16;
             }
-            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => { // hope it's a correct implementation
+            InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
+                // hope it's a correct implementation
                 let v = self.chip8_state.v[index as usize] as usize;
-                self.chip8_state.i = (FONTS_SPRITES[v].len() *  v) as u16;
+                self.chip8_state.i = (FONTS_SPRITES[v].len() * v) as u16;
             }
             InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
                 let v = self.chip8_state.v[index as usize];
                 let hundreds_digit = v / 100;
-                let tens_digit = (v - hundreds_digit*100) / 10;
-                let units_digit = (v - hundreds_digit*100) - (tens_digit*10);
+                let tens_digit = (v - hundreds_digit * 100) / 10;
+                let units_digit = (v - hundreds_digit * 100) - (tens_digit * 10);
                 self.chip8_state.memory[self.chip8_state.i as usize] = units_digit;
                 self.chip8_state.memory[self.chip8_state.i as usize + 1] = tens_digit;
                 self.chip8_state.memory[self.chip8_state.i as usize + 2] = hundreds_digit;
             }
             InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(index) => {
-                for i in 0..(index+1) {
-                    self.chip8_state.memory[self.chip8_state.i as usize + i as usize] = self.chip8_state.v[i as usize];
-                } 
+                for i in 0..(index + 1) {
+                    self.chip8_state.memory[self.chip8_state.i as usize + i as usize] =
+                        self.chip8_state.v[i as usize];
+                }
                 self.chip8_state.i += index as u16 + 1;
             }
             InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(index) => {
-                for i in 0..(index+1) {
-                    self.chip8_state.v[i as usize] = self.chip8_state.memory[self.chip8_state.i as usize + i as usize];
-                } 
+                for i in 0..(index + 1) {
+                    self.chip8_state.v[i as usize] =
+                        self.chip8_state.memory[self.chip8_state.i as usize + i as usize];
+                }
                 self.chip8_state.i += index as u16 + 1;
             }
             InstructionSet::DrawSprite(x, y, sprite_data) => {
-                //todo
+                let height = sprite_data;
+
+                self.chip8_state.v[0xF] = 0;
+                for i in 0..height {
+                    let row = self.chip8_state.memory[self.chip8_state.i as usize + i as usize];
+                    for j in 0..8 {
+                        let x_pos = match self.chip8_state.v[x as usize] + j{
+                            pos if pos >= DISPLAY_SIZE[0] as u8 => pos - DISPLAY_SIZE[0] as u8,
+                            pos => pos,
+                        };
+        
+                        let y_pos = match self.chip8_state.v[y as usize] + i{
+                            pos if pos >= DISPLAY_SIZE[1] as u8 => pos - DISPLAY_SIZE[1] as u8,
+                            pos => pos,
+                        };
+
+                        let index = (y_pos as usize * DISPLAY_SIZE[0])
+                            + x_pos as usize;
+                        let value = self.display_data[index] as u8 ^ ((row >> (7 - j)) % 2);
+                        if value != self.display_data[index] as u8 {
+                            self.chip8_state.v[0xF] = 1;
+                        }
+                        self.display_data[index] = value == 1;
+                    }
+                }
             }
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(index) => {
                 if let Some(code) = self.chip8_state.chip8_key {
