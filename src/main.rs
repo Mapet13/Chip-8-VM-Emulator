@@ -20,6 +20,9 @@ use utils::*;
 mod instructions;
 use instructions::*;
 
+mod fonts_sprites;
+use fonts_sprites::FONTS_SPRITES;
+
 fn write_rom_data_to_memory(memory: &mut [u8; MEMORY_SIZE], rom_data: &[u8]) {
     byte_copy(
         rom_data,
