@@ -5,7 +5,7 @@
 [<img src="https://i.imgur.com/Lp5uujp.png">]()
 #### Debug Mode:
 [<img src="https://i.imgur.com/t5xkHKs.png">]()
-###### in this mode, you run next instruction by pressing `space`
+###### in this mode, you run next instruction by pressing `Space Bar`
 
 #### Keyboard Bindings
 
