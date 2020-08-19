@@ -85,9 +85,9 @@ fn write_font_data_to_memory(memory: &mut [u8; MEMORY_SIZE]) {
 
 impl EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        const DESIRED_FPS: u32 = 60;
+        const FPS: u32 = 400;
 
-        while ggez::timer::check_update_time(ctx, DESIRED_FPS) {
+        while ggez::timer::check_update_time(ctx, FPS) {
             if self.chip8_state.waiting_for_key_press {
                 if let Some(code) = self.chip8_state.chip8_key {
                     self.chip8_state.v[self.chip8_state.key_index_store as usize] = code;
@@ -112,6 +112,7 @@ impl EventHandler for MainState {
                 if self.chip8_state.sound_timer > 0 {
                     self.chip8_state.sound_timer -= 1;
                 }
+
                 self.chip8_state.program_counter += 2;
 
                 if cfg!(debug_assertions) {
