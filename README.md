@@ -1,4 +1,4 @@
-# Chip-8-VM-Emulator
+# Chip-8-VM-Emulator [![Build Status](https://travis-ci.com/Mapet13/Chip-8-VM-Emulator.svg?token=18sGBKfWJyZu98Np5y8y&branch=master)](https://travis-ci.com/Mapet13/Chip-8-VM-Emulator)
 **Chip-8** VM Emulator developed in *Rust-lang* for learning purposes. 
 
 #### Release Mode:
