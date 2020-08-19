@@ -2,10 +2,9 @@ use ggez::conf;
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
 use ggez::graphics;
 use ggez::{Context, GameResult};
-use rand::Rng;
 
-mod gui;
-use gui::ImGuiWrapper;
+mod debug;
+use debug::ImGuiWrapper;
 
 mod chip8_state;
 use chip8_state::*;
@@ -50,7 +49,7 @@ impl MainState {
     fn new(mut ctx: &mut Context, hidpi_factor: f32, rom_data: &[u8]) -> GameResult<MainState> {
         let imgui_wrapper = ImGuiWrapper::new(&mut ctx);
         let mut s = MainState {
-            debug_run_next: false,
+            debug_run_next: if cfg!(debug_assertions) { false } else { true },
             imgui_wrapper,
             hidpi_factor,
             chip8_state: Chip8State {
@@ -100,13 +99,12 @@ impl EventHandler for MainState {
                         .unwrap();
                 let instruction = decode_opcode(opcode);
 
-                if opcode != 0 {
+                if cfg!(debug_assertions) && opcode != 0 {
                     println!("[{:04X?}]: {}", opcode, instruction.to_string());
                 }
                 self.chip8_state.execute_instruction(instruction, opcode);
                 if let Some(code) = self.chip8_state.chip8_key {
                     //println!("Key Pressed: {:02X?}", code);
-                    self.chip8_state.chip8_key = None;
                 }
                 if self.chip8_state.delay_timer > 0 {
                     self.chip8_state.delay_timer -= 1;
@@ -116,11 +114,13 @@ impl EventHandler for MainState {
                 }
                 self.chip8_state.program_counter += 2;
 
-                self.debug_run_next = false;
+                if cfg!(debug_assertions) {
+                    self.debug_run_next = false;
+                }
             }
         }
 
-        //println!("FPS: {}", ggez::timer::fps(ctx));
+        println!("FPS: {}", ggez::timer::fps(ctx));
 
         Ok(())
     }
@@ -152,7 +152,7 @@ impl EventHandler for MainState {
         }
 
         // Render game ui
-        {
+        if cfg!(debug_assertions) {
             self.imgui_wrapper
                 .render(ctx, self.hidpi_factor, &self.chip8_state);
         }
@@ -162,7 +162,9 @@ impl EventHandler for MainState {
     }
 
     fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
-        self.imgui_wrapper.update_mouse_pos(x, y);
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_mouse_pos(x, y);
+        }
     }
 
     fn mouse_button_down_event(
@@ -172,11 +174,13 @@ impl EventHandler for MainState {
         _x: f32,
         _y: f32,
     ) {
-        self.imgui_wrapper.update_mouse_down((
-            button == MouseButton::Left,
-            button == MouseButton::Right,
-            button == MouseButton::Middle,
-        ));
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_mouse_down((
+                button == MouseButton::Left,
+                button == MouseButton::Right,
+                button == MouseButton::Middle,
+            ));
+        }
     }
 
     fn mouse_button_up_event(
@@ -186,7 +190,9 @@ impl EventHandler for MainState {
         _x: f32,
         _y: f32,
     ) {
-        self.imgui_wrapper.update_mouse_down((false, false, false));
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_mouse_down((false, false, false));
+        }
     }
 
     fn key_down_event(
@@ -219,20 +225,29 @@ impl EventHandler for MainState {
             KeyCode::V => Some(0xF),
             _ => None,
         };
-
-        self.imgui_wrapper.update_key_down(keycode, keymods);
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_key_down(keycode, keymods);
+        }
     }
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods) {
-        self.imgui_wrapper.update_key_up(keycode, keymods);
+        self.chip8_state.chip8_key = None;
+
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_key_up(keycode, keymods);
+        }
     }
 
     fn text_input_event(&mut self, _ctx: &mut Context, val: char) {
-        self.imgui_wrapper.update_text(val);
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_text(val);
+        }
     }
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-        self.imgui_wrapper.update_scroll(x, y);
+        if cfg!(debug_assertions) {
+            self.imgui_wrapper.update_scroll(x, y);
+        }
     }
 }
 
@@ -247,8 +262,18 @@ fn main() -> ggez::GameResult {
     let cb = ggez::ContextBuilder::new("CHIP-8 VM", "ggez")
         .window_setup(conf::WindowSetup::default().title("CHIP-8 VM"))
         .window_mode(conf::WindowMode::default().resizable(false).dimensions(
-            (DISPLAY_SIZE[0] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[0],
-            (DISPLAY_SIZE[1] * SCALE) as f32 + DEBUG_EXTRA_DISPLAY_SIZE[1],
+            (DISPLAY_SIZE[0] * SCALE) as f32
+                + if cfg!(debug_assertions) {
+                    DEBUG_EXTRA_DISPLAY_SIZE[0]
+                } else {
+                    0.0
+                },
+            (DISPLAY_SIZE[1] * SCALE) as f32
+                + if cfg!(debug_assertions) {
+                    DEBUG_EXTRA_DISPLAY_SIZE[1]
+                } else {
+                    0.0
+                },
         ));
     let (ref mut ctx, event_loop) = &mut cb.build()?;
 

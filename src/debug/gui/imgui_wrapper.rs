@@ -13,7 +13,7 @@ use imgui_gfx_renderer::*;
 
 use std::time::Instant;
 
-use super::super::chip8_state::*;
+use super::super::super::chip8_state::*;
 
 use super::imgui_render::render_gui;
 

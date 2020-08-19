@@ -1,7 +1,7 @@
 use imgui::*;
 use imgui_gfx_renderer::*;
 
-use super::super::chip8_state::*;
+use super::super::super::chip8_state::*;
 
 pub fn render_gui(ui: &Ui, chip8_state: &Chip8State) {
     let flags = imgui::WindowFlags::NO_RESIZE
