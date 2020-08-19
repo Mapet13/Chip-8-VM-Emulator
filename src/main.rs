@@ -120,7 +120,7 @@ impl EventHandler for MainState {
             }
         }
 
-        println!("FPS: {}", ggez::timer::fps(ctx));
+        //println!("FPS: {}", ggez::timer::fps(ctx));
 
         Ok(())
     }
