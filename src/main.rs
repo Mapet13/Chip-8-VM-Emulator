@@ -1,20 +1,20 @@
 use ggez::conf;
 use ggez::event::{self};
 
+mod chip8_vm;
 mod debug;
-mod chip8_state;
-mod setup;
-mod utils;
-mod instructions;
 mod fonts_sprites;
-mod write_to_memory;
-mod test;
+mod instructions;
 mod main_state;
+mod setup;
+mod test;
+mod utils;
+mod write_to_memory;
 
-use utils::read_file_as_bytes;
-use chip8_state::*;
-use setup::*;
+use chip8_vm::*;
 use main_state::*;
+use setup::*;
+use utils::read_file_as_bytes;
 
 fn main() -> ggez::GameResult {
     let matches = setup_cmd_program_arguments();

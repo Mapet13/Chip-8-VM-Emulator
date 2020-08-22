@@ -1,7 +1,6 @@
-use crate::utils::byte_copy;
+use crate::chip8_vm::{CHIP8_RESERVED_MEMORY_SIZE, MEMORY_SIZE};
 use crate::fonts_sprites::FONTS_SPRITES;
-use crate::chip8_state::CHIP8_RESERVED_MEMORY_SIZE;
-use crate::chip8_state::MEMORY_SIZE;
+use crate::utils::byte_copy;
 
 pub fn write_rom_data_to_memory(memory: &mut [u8; MEMORY_SIZE], rom_data: &[u8]) {
     byte_copy(

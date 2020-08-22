@@ -2,31 +2,31 @@ pub enum InstructionSet {
     MachineLanguageSubroutine(u16),
     ClearScreen,
     ReturnFromSubroutine,
-    JumpToAddress(u16),
     ExecuteSubroutine(u16),
+    JumpToAddress(u16),
     SkipFollowingIfRegisterIsEqualToValue(u8, u8),
     SkipFollowingIfRegisterIsNotEqualToValue(u8, u8),
     SkipFollowingIfRegisterIsEqualToOtherRegister(u8, u8),
     SkipFollowingIfRegisterIsNotEqualToOtherRegister(u8, u8),
+    SkipFollowingIfKeyCorrespondingToVxIsPressed(u8),
+    SkipFollowingIfKeyCorrespondingToVxIsNotPressed(u8),
     StoreInRegister(u8, u8),
     AddToRegister(u8, u8),
-    CopyRegisterValueToOtherRegister(u8, u8),
+    CopyVyValueToVx(u8, u8),
     SetVxToVxOrVy(u8, u8),
     SetVxToVxAndVy(u8, u8),
     SetVxToVxXorVy(u8, u8),
-    AddValueOfRegisterVyToRegisterVx(u8, u8),
-    SubtractValueOfRegisterVyFromRegisterVx(u8, u8),
-    StoreValueOfRegisterVyShiftedRightOneBitInVx(u8, u8),
+    AddVyValueToVx(u8, u8),
+    SubtractVyValueFromVx(u8, u8),
+    StoreVyValueShiftedRightOneBitInVx(u8, u8),
     SetVxToValueOfVyMinusVx(u8, u8),
-    StoreValueOfRegisterVyShiftedLeftOneBitInVx(u8, u8),
+    StoreVyValueShiftedLeftOneBitInVx(u8, u8),
     StoreAddressInRegisterI(u16),
     JumpToAddressWithV0Offset(u16),
     SetVxToRandomNumberWithAMaskOf(u8, u8),
     DrawSprite(u8, u8, u8),
     StoreDelayTimerInRegisterVx(u8),
     WaitForAKeyPress(u8),
-    SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(u8),
-    SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(u8),
     SetDelayTimerToVx(u8),
     SetSoundTimerToVx(u8),
     AddVxToRegisterI(u8),
@@ -61,7 +61,7 @@ impl ToString for InstructionSet {
                      value, index
                 )
             }
-            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
+            InstructionSet::CopyVyValueToVx(x, y) => {
                 format!(
                     "Copy Register [{:02X?}] Value To Other Register [{:02X?}]",
                      y, x
@@ -108,7 +108,7 @@ impl ToString for InstructionSet {
                     y
                 )
             }
-            InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
+            InstructionSet::AddVyValueToVx(x, y) => {
                 format!(
                     "Add Value Of Register Vy [{:02X?}] To Register Vx [{:02X?}]",
                      y, x
@@ -148,13 +148,13 @@ impl ToString for InstructionSet {
                     y
                 )
             }
-            InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
+            InstructionSet::SubtractVyValueFromVx(x, y) => {
                 format!(
                     "Subtract Value Of Register Vy [{:02X?}] From Register Vx [{:02X?}]",
                      y, x,
                 )
             }
-            InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
+            InstructionSet::StoreVyValueShiftedRightOneBitInVx(x, y) => {
                 format!(
                     "Store Value Of Register Vy [{:02X?}] Shifted Right One Bit In Vx [{:02X?}]",  
                     y,
@@ -167,7 +167,7 @@ impl ToString for InstructionSet {
                      x, y
                 )
             }
-            InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
+            InstructionSet::StoreVyValueShiftedLeftOneBitInVx(x, y) => {
                 format!(
                     "Store Value Of Register Vy [{:02X?}] Shifted Left One Bit In Vx [{:02X?}]",
                     y,
@@ -186,13 +186,13 @@ impl ToString for InstructionSet {
                      x
                 )
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(x) => {
+            InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsPressed(x) => {
                 format!(
                     "Skip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Pressed",
                     x
                 )
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(x) => {
+            InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsNotPressed(x) => {
                 format!(
                     "Skip Following Instruction If Key Corresponding To Vx [{:02X?}] Is Not Pressed",
                     x
@@ -257,15 +257,15 @@ pub fn decode_opcode(opcode: u16) -> InstructionSet {
         0x6000 => InstructionSet::StoreInRegister(x, value),
         0x7000 => InstructionSet::AddToRegister(x, value),
         0x8000 => match opcode & 0xF00F {
-            0x8000 => InstructionSet::CopyRegisterValueToOtherRegister(x, y),
+            0x8000 => InstructionSet::CopyVyValueToVx(x, y),
             0x8001 => InstructionSet::SetVxToVxOrVy(x, y),
             0x8002 => InstructionSet::SetVxToVxAndVy(x, y),
             0x8003 => InstructionSet::SetVxToVxXorVy(x, y),
-            0x8004 => InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y),
-            0x8005 => InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y),
-            0x8006 => InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y),
+            0x8004 => InstructionSet::AddVyValueToVx(x, y),
+            0x8005 => InstructionSet::SubtractVyValueFromVx(x, y),
+            0x8006 => InstructionSet::StoreVyValueShiftedRightOneBitInVx(x, y),
             0x8007 => InstructionSet::SetVxToValueOfVyMinusVx(x, y),
-            0x800E => InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y),
+            0x800E => InstructionSet::StoreVyValueShiftedLeftOneBitInVx(x, y),
             _ => InstructionSet::None,
         },
         0x9000 => match opcode & 0xF00F {
@@ -280,8 +280,8 @@ pub fn decode_opcode(opcode: u16) -> InstructionSet {
             InstructionSet::DrawSprite(x, y, sprite_data)
         }
         0xE000 => match opcode & 0xF0FF {
-            0xE09E => InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(x),
-            0xE0A1 => InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(x),
+            0xE09E => InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsPressed(x),
+            0xE0A1 => InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsNotPressed(x),
             _ => InstructionSet::None,
         },
         0xF000 => match opcode & 0xF0FF {

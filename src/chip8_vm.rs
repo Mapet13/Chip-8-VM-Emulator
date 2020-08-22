@@ -1,7 +1,7 @@
-use crate::write_to_memory::write_rom_data_to_memory;
-use crate::write_to_memory::write_font_data_to_memory;
-use ggez::event::KeyCode;
 use crate::instructions::InstructionSet;
+use crate::write_to_memory::write_font_data_to_memory;
+use crate::write_to_memory::write_rom_data_to_memory;
+use ggez::event::KeyCode;
 use rand::Rng;
 
 pub const MEMORY_SIZE: usize = 0x1000; // 4096
@@ -28,7 +28,6 @@ pub struct Chip8VM {
 }
 
 impl Chip8VM {
-
     pub fn new(rom_data: &[u8]) -> Self {
         let mut vm = Self {
             waiting_for_key_press: false,
@@ -49,7 +48,7 @@ impl Chip8VM {
         write_rom_data_to_memory(&mut vm.memory, rom_data);
 
         vm
-    }    
+    }
 
     pub fn handle_keyboard_input(&mut self, keycode: KeyCode) {
         self.pressed_key = match keycode {
@@ -92,9 +91,7 @@ impl Chip8VM {
             }
             InstructionSet::AddToRegister(index, value) => self.v[index as usize] += value,
             InstructionSet::StoreInRegister(index, value) => self.v[index as usize] = value,
-            InstructionSet::CopyRegisterValueToOtherRegister(x, y) => {
-                self.v[x as usize] = self.v[y as usize]
-            }
+            InstructionSet::CopyVyValueToVx(x, y) => self.v[x as usize] = self.v[y as usize],
             InstructionSet::SkipFollowingIfRegisterIsEqualToValue(index, value) => {
                 if self.v[index as usize] == value {
                     self.program_counter += 2;
@@ -113,12 +110,12 @@ impl Chip8VM {
             InstructionSet::SetVxToVxOrVy(x, y) => self.v[x as usize] |= self.v[y as usize],
             InstructionSet::SetVxToVxAndVy(x, y) => self.v[x as usize] &= self.v[y as usize],
             InstructionSet::SetVxToVxXorVy(x, y) => self.v[x as usize] ^= self.v[y as usize],
-            InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y) => {
+            InstructionSet::AddVyValueToVx(x, y) => {
                 let sum = self.v[x as usize] as u16 + self.v[y as usize] as u16;
                 self.v[0xF] = if sum > 255 { 1 } else { 0 };
                 self.v[x as usize] = (sum & 0x00FF) as u8;
             }
-            InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y) => {
+            InstructionSet::SubtractVyValueFromVx(x, y) => {
                 self.v[0xF] = if self.v[x as usize] > self.v[y as usize] {
                     1
                 } else {
@@ -126,7 +123,7 @@ impl Chip8VM {
                 };
                 self.v[x as usize] = (self.v[x as usize] as i32 - self.v[y as usize] as i32) as u8;
             }
-            InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y) => {
+            InstructionSet::StoreVyValueShiftedRightOneBitInVx(x, y) => {
                 self.v[x as usize] = self.v[y as usize] >> 1;
                 self.v[0xF] = self.v[y as usize] & 0x01;
             }
@@ -138,7 +135,7 @@ impl Chip8VM {
                 };
                 self.v[x as usize] = (self.v[y as usize] as i32 - self.v[x as usize] as i32) as u8;
             }
-            InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y) => {
+            InstructionSet::StoreVyValueShiftedLeftOneBitInVx(x, y) => {
                 self.v[x as usize] = self.v[y as usize] << 1;
                 self.v[0xF] = (self.v[y as usize] >> 7) & 0x01;
             }
@@ -164,10 +161,6 @@ impl Chip8VM {
                 self.i += self.v[index as usize] as u16;
             }
             InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(index) => {
-                // // hope it's a correct implementation
-                // let v self.v[index as usize] as usize;
-                // self.i = (FONTS_SPRITES[v].len() * v) as u16;
-
                 self.i = self.v[index as usize] as u16 * 5;
             }
             InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(index) => {
@@ -217,14 +210,14 @@ impl Chip8VM {
                     }
                 }
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(index) => {
+            InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsNotPressed(index) => {
                 if let Some(code) = self.pressed_key {
                     if code != self.v[index as usize] {
                         self.program_counter += 2;
                     }
                 }
             }
-            InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(index) => {
+            InstructionSet::SkipFollowingIfKeyCorrespondingToVxIsPressed(index) => {
                 if let Some(code) = self.pressed_key {
                     if code == self.v[index as usize] {
                         self.program_counter += 2;

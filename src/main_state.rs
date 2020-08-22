@@ -1,4 +1,4 @@
-use crate::{chip8_state::*, debug::ImGuiWrapper, instructions::decode_opcode};
+use crate::{chip8_vm::*, debug::ImGuiWrapper, instructions::decode_opcode};
 use ggez::{
     event::{EventHandler, KeyCode, KeyMods, MouseButton},
     graphics, Context, GameResult,

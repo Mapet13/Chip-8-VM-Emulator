@@ -2,8 +2,8 @@
 #![allow(non_snake_case)]
 #![allow(unused_imports)]
 
-use crate::instructions::decode_opcode;
 use super::*;
+use crate::instructions::decode_opcode;
 
 fn get_vm() -> Chip8VM {
     Chip8VM {
