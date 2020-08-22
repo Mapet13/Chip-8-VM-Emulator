@@ -70,10 +70,10 @@ impl ToString for InstructionSet {
             InstructionSet::None => {
                     "Not Handled Opcode".to_string()
             }
-            InstructionSet::SkipFollowingIfRegisterIsEqualToValue(register_index, value) => {
+            InstructionSet::SkipFollowingIfRegisterIsEqualToValue(register, value) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Equal To Value [{:02X?}]",
-                     register_index, value,
+                     register, value,
                 )
             }
             InstructionSet::SetVxToVxOrVy(x, y) => {
@@ -94,10 +94,10 @@ impl ToString for InstructionSet {
                      x, y
                 )
             }
-            InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(register_index, value) => {
+            InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(register, value) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Not Equal To Value [{:02X?}]",
-                    register_index,
+                    register,
                     value,
                 )
             }
@@ -236,121 +236,66 @@ impl ToString for InstructionSet {
 }
 
 pub fn decode_opcode(opcode: u16) -> InstructionSet {
+    let address = opcode & 0x0FFF;
+    let value = (opcode & 0x00FF) as u8;
+    let x = ((opcode & 0x0F00) >> 8) as u8;
+    let y = ((opcode & 0x00F0) >> 4) as u8;
     match opcode & 0xF000 {
         0x0000 => match opcode {
             0x00E0 => InstructionSet::ClearScreen,
             0x00EE => InstructionSet::ReturnFromSubroutine,
             _ => InstructionSet::MachineLanguageSubroutine(opcode),
         },
-        0x1000 => InstructionSet::JumpToAddress(opcode & 0x0FFF),
-        0x2000 => InstructionSet::ExecuteSubroutine(opcode & 0x0FFF),
-        0x3000 => {
-            let register_index: u8 = ((opcode & 0x0F00) >> 8) as u8;
-            let value: u8 = (opcode & 0x00FF) as u8;
-            InstructionSet::SkipFollowingIfRegisterIsEqualToValue(register_index, value)
-        }
-        0x4000 => {
-            let register_index: u8 = ((opcode & 0x0F00) >> 8) as u8;
-            let value: u8 = (opcode & 0x00FF) as u8;
-            InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(register_index, value)
-        }
+        0x1000 => InstructionSet::JumpToAddress(address),
+        0x2000 => InstructionSet::ExecuteSubroutine(address),
+        0x3000 => InstructionSet::SkipFollowingIfRegisterIsEqualToValue(x, value),
+        0x4000 => InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(x, value),
         0x5000 => match opcode & 0xF00F {
-            0x5000 => {
-                let x_index = ((opcode & 0x0F00) >> 8) as u8;
-                let y_index = ((opcode & 0x00F0) >> 4) as u8;
-
-                InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x_index, y_index)
-            }
+            0x5000 => InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y),
             _ => InstructionSet::None,
         },
-        0x6000 => {
-            let register_index: u8 = ((opcode & 0x0F00) >> 8) as u8;
-            let value: u8 = (opcode & 0x00FF) as u8;
-            InstructionSet::StoreInRegister(register_index, value)
-        }
-        0x7000 => {
-            let register_index: u8 = ((opcode & 0x0F00) >> 8) as u8;
-            let value: u8 = (opcode & 0x00FF) as u8;
-            InstructionSet::AddToRegister(register_index, value)
-        }
-        0x8000 => {
-            let x_index = ((opcode & 0x0F00) >> 8) as u8;
-            let y_index = ((opcode & 0x00F0) >> 4) as u8;
-
-            match opcode & 0xF00F {
-                0x8000 => InstructionSet::CopyRegisterValueToOtherRegister(x_index, y_index),
-                0x8001 => InstructionSet::SetVxToVxOrVy(x_index, y_index),
-                0x8002 => InstructionSet::SetVxToVxAndVy(x_index, y_index),
-                0x8003 => InstructionSet::SetVxToVxXorVy(x_index, y_index),
-                0x8004 => InstructionSet::AddValueOfRegisterVyToRegisterVx(x_index, y_index),
-                0x8005 => InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x_index, y_index),
-                0x8006 => {
-                    InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x_index, y_index)
-                }
-                0x8007 => InstructionSet::SetVxToValueOfVyMinusVx(x_index, y_index),
-                0x800E => {
-                    InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x_index, y_index)
-                }
-                _ => InstructionSet::None,
-            }
-        }
+        0x6000 => InstructionSet::StoreInRegister(x, value),
+        0x7000 => InstructionSet::AddToRegister(x, value),
+        0x8000 => match opcode & 0xF00F {
+            0x8000 => InstructionSet::CopyRegisterValueToOtherRegister(x, y),
+            0x8001 => InstructionSet::SetVxToVxOrVy(x, y),
+            0x8002 => InstructionSet::SetVxToVxAndVy(x, y),
+            0x8003 => InstructionSet::SetVxToVxXorVy(x, y),
+            0x8004 => InstructionSet::AddValueOfRegisterVyToRegisterVx(x, y),
+            0x8005 => InstructionSet::SubtractValueOfRegisterVyFromRegisterVx(x, y),
+            0x8006 => InstructionSet::StoreValueOfRegisterVyShiftedRightOneBitInVx(x, y),
+            0x8007 => InstructionSet::SetVxToValueOfVyMinusVx(x, y),
+            0x800E => InstructionSet::StoreValueOfRegisterVyShiftedLeftOneBitInVx(x, y),
+            _ => InstructionSet::None,
+        },
         0x9000 => match opcode & 0xF00F {
-            0x9000 => {
-                let x_index = ((opcode & 0x0F00) >> 8) as u8;
-                let y_index = ((opcode & 0x00F0) >> 4) as u8;
-                InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x_index, y_index)
-            }
+            0x9000 => InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y),
             _ => InstructionSet::None,
         },
         0xA000 => InstructionSet::StoreAddressInRegisterI(opcode & 0x0FFF),
         0xB000 => InstructionSet::JumpToAddressWithV0Offset(opcode & 0x0FFF),
-        0xC000 => {
-            let x_index = ((opcode & 0x0F00) >> 8) as u8;
-            let mask = (opcode & 0x00FF) as u8;
-
-            InstructionSet::SetVxToRandomNumberWithAMaskOf(x_index, mask)
-        }
+        0xC000 => InstructionSet::SetVxToRandomNumberWithAMaskOf(x, value),
         0xD000 => {
-            let x_index = ((opcode & 0x0F00) >> 8) as u8;
-            let y_index = ((opcode & 0x00F0) >> 4) as u8;
             let sprite_data = (opcode & 0x000F) as u8;
-
-            InstructionSet::DrawSprite(x_index, y_index, sprite_data)
+            InstructionSet::DrawSprite(x, y, sprite_data)
         }
-        0xE000 => {
-            let x_index = ((opcode & 0x0F00) >> 8) as u8;
-            match opcode & 0xF0FF {
-                0xE09E => {
-                    InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(x_index)
-                }
-                0xE0A1 => {
-                    InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(
-                        x_index,
-                    )
-                }
-                _ => InstructionSet::None,
-            }
-        }
-        0xF000 => {
-            let x_index = ((opcode & 0x0F00) >> 8) as u8;
-
-            match opcode & 0xF0FF {
-                0xF007 => InstructionSet::StoreDelayTimerInRegisterVx(x_index),
-                0xF00A => InstructionSet::WaitForAKeyPress(x_index),
-                0xF015 => InstructionSet::SetDelayTimerToVx(x_index),
-                0xF018 => InstructionSet::SetSoundTimerToVx(x_index),
-                0xF01E => InstructionSet::AddVxToRegisterI(x_index),
-                0xF029 => InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(x_index),
-                0xF033 => InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(x_index),
-                0xF055 => {
-                    InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(x_index)
-                }
-                0xF065 => InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(
-                    x_index,
-                ),
-                _ => InstructionSet::None,
-            }
-        }
+        0xE000 => match opcode & 0xF0FF {
+            0xE09E => InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(x),
+            0xE0A1 => InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(x),
+            _ => InstructionSet::None,
+        },
+        0xF000 => match opcode & 0xF0FF {
+            0xF007 => InstructionSet::StoreDelayTimerInRegisterVx(x),
+            0xF00A => InstructionSet::WaitForAKeyPress(x),
+            0xF015 => InstructionSet::SetDelayTimerToVx(x),
+            0xF018 => InstructionSet::SetSoundTimerToVx(x),
+            0xF01E => InstructionSet::AddVxToRegisterI(x),
+            0xF029 => InstructionSet::SetIToTheMemoryAddressOfSpriteCorrespondingToVx(x),
+            0xF033 => InstructionSet::StoreTheBinaryCodedDecimalEquivalentOfVx(x),
+            0xF055 => InstructionSet::StoreValuesOfV0ToVxInclusiveInMemoryStartingAtAddressI(x),
+            0xF065 => InstructionSet::FillRegistersV0ToVxInclusiveWithMemoryStartingAtAddressI(x),
+            _ => InstructionSet::None,
+        },
         _ => InstructionSet::None,
     }
 }
