@@ -102,7 +102,7 @@ impl Chip8VM {
                     self.program_counter += 2;
                 }
             }
-            InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
+            InstructionSet::SkipFollowingIfVxIsEqualToVy(x, y) => {
                 if self.v[x as usize] == self.v[y as usize] {
                     self.program_counter += 2;
                 }
@@ -139,7 +139,7 @@ impl Chip8VM {
                 self.v[x as usize] = self.v[y as usize] << 1;
                 self.v[0xF] = (self.v[y as usize] >> 7) & 0x01;
             }
-            InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
+            InstructionSet::SkipFollowingIfVxrIsNotEqualToVy(x, y) => {
                 if self.v[x as usize] != self.v[y as usize] {
                     self.program_counter += 2;
                 }

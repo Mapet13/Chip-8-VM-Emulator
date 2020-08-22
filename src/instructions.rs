@@ -6,8 +6,8 @@ pub enum InstructionSet {
     JumpToAddress(u16),
     SkipFollowingIfRegisterIsEqualToValue(u8, u8),
     SkipFollowingIfRegisterIsNotEqualToValue(u8, u8),
-    SkipFollowingIfRegisterIsEqualToOtherRegister(u8, u8),
-    SkipFollowingIfRegisterIsNotEqualToOtherRegister(u8, u8),
+    SkipFollowingIfVxIsEqualToVy(u8, u8),
+    SkipFollowingIfVxrIsNotEqualToVy(u8, u8),
     SkipFollowingIfKeyCorrespondingToVxIsPressed(u8),
     SkipFollowingIfKeyCorrespondingToVxIsNotPressed(u8),
     StoreInRegister(u8, u8),
@@ -101,7 +101,7 @@ impl ToString for InstructionSet {
                     value,
                 )
             }
-            InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y) => {
+            InstructionSet::SkipFollowingIfVxIsEqualToVy(x, y) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Equal To Other Register [{:02X?}]",
                     x,
@@ -141,7 +141,7 @@ impl ToString for InstructionSet {
             InstructionSet::ReturnFromSubroutine => {
                 "Return From Subroutine".to_string()
             }
-            InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y) => {
+            InstructionSet::SkipFollowingIfVxrIsNotEqualToVy(x, y) => {
                 format!(
                     "Skip Following If Register [{:02X?}] Is Not Equal To Other Register  [{:02X?}]",
                     x,
@@ -251,7 +251,7 @@ pub fn decode_opcode(opcode: u16) -> InstructionSet {
         0x3000 => InstructionSet::SkipFollowingIfRegisterIsEqualToValue(x, value),
         0x4000 => InstructionSet::SkipFollowingIfRegisterIsNotEqualToValue(x, value),
         0x5000 => match opcode & 0xF00F {
-            0x5000 => InstructionSet::SkipFollowingIfRegisterIsEqualToOtherRegister(x, y),
+            0x5000 => InstructionSet::SkipFollowingIfVxIsEqualToVy(x, y),
             _ => InstructionSet::None,
         },
         0x6000 => InstructionSet::StoreInRegister(x, value),
@@ -269,7 +269,7 @@ pub fn decode_opcode(opcode: u16) -> InstructionSet {
             _ => InstructionSet::None,
         },
         0x9000 => match opcode & 0xF00F {
-            0x9000 => InstructionSet::SkipFollowingIfRegisterIsNotEqualToOtherRegister(x, y),
+            0x9000 => InstructionSet::SkipFollowingIfVxrIsNotEqualToVy(x, y),
             _ => InstructionSet::None,
         },
         0xA000 => InstructionSet::StoreAddressInRegisterI(opcode & 0x0FFF),
