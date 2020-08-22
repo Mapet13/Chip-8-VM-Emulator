@@ -2,9 +2,9 @@
 **Chip-8** VM Emulator developed in *Rust-lang* for learning purposes. 
 
 #### Release Mode:
-[<img src="https://i.imgur.com/Lp5uujp.png">]()
+[<img src="https://i.imgur.com/Lp5uujp.png">](https://github.com/Mapet13/Chip-8-VM-Emulator)
 #### Debug Mode:
-[<img src="https://i.imgur.com/t5xkHKs.png">]()
+[<img src="https://i.imgur.com/t5xkHKs.png">](https://github.com/Mapet13/Chip-8-VM-Emulator)
 ###### in this mode, you run next instruction by pressing `Space Bar`
 
 #### Keyboard Bindings
