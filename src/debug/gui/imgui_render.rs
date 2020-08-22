@@ -3,7 +3,7 @@ use imgui_gfx_renderer::*;
 
 use super::super::super::chip8_state::*;
 
-pub fn render_gui(ui: &Ui, chip8_state: &Chip8State) {
+pub fn render_gui(ui: &Ui, chip8_state: &Chip8VM) {
     let flags = imgui::WindowFlags::NO_RESIZE
         | imgui::WindowFlags::NO_MOVE
         | imgui::WindowFlags::NO_COLLAPSE;
@@ -12,7 +12,7 @@ pub fn render_gui(ui: &Ui, chip8_state: &Chip8State) {
     render_memory_table(ui, chip8_state, flags);
 }
 
-fn render_register_info_window(ui: &Ui, chip8_state: &Chip8State, flags: WindowFlags) {
+fn render_register_info_window(ui: &Ui, chip8_state: &Chip8VM, flags: WindowFlags) {
     Window::new(im_str!("Registers"))
         .size(
             [
@@ -46,7 +46,7 @@ fn render_register_info_window(ui: &Ui, chip8_state: &Chip8State, flags: WindowF
         });
 }
 
-fn render_memory_table(ui: &Ui, chip8_state: &Chip8State, flags: WindowFlags) {
+fn render_memory_table(ui: &Ui, chip8_state: &Chip8VM, flags: WindowFlags) {
     let memory_table_window_size = [
         DEBUG_EXTRA_DISPLAY_SIZE[0] + (DISPLAY_SIZE[0] * SCALE) as f32,
         DEBUG_EXTRA_DISPLAY_SIZE[1],

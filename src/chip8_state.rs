@@ -1,3 +1,6 @@
+use crate::write_to_memory::write_rom_data_to_memory;
+use crate::write_to_memory::write_font_data_to_memory;
+use ggez::event::KeyCode;
 use crate::instructions::InstructionSet;
 use rand::Rng;
 
@@ -9,7 +12,7 @@ pub const DISPLAY_SIZE: [usize; 2] = [64, 32];
 
 pub const DEBUG_EXTRA_DISPLAY_SIZE: [f32; 2] = [300.0, 300.0];
 
-pub struct Chip8State {
+pub struct Chip8VM {
     pub memory: [u8; MEMORY_SIZE],
     pub v: [u8; 16],
     pub i: u16,
@@ -18,13 +21,58 @@ pub struct Chip8State {
     pub program_counter: u16,
     pub stack_pointer: u8,
     pub stack: [u16; 16],
-    pub chip8_key: Option<u8>,
+    pub pressed_key: Option<u8>,
     pub display_data: [bool; DISPLAY_SIZE[0] * DISPLAY_SIZE[1]],
     pub waiting_for_key_press: bool,
     pub key_index_store: u8,
 }
 
-impl Chip8State {
+impl Chip8VM {
+
+    pub fn new(rom_data: &[u8]) -> Self {
+        let mut vm = Self {
+            waiting_for_key_press: false,
+            key_index_store: 0x00,
+            display_data: [false; DISPLAY_SIZE[0] * DISPLAY_SIZE[1]],
+            memory: [0 as u8; MEMORY_SIZE],
+            v: [0 as u8; 16],
+            i: 0,
+            delay_timer: 0,
+            sound_timer: 0,
+            program_counter: 0x200,
+            stack_pointer: 0,
+            stack: [0 as u16; 16],
+            pressed_key: None,
+        };
+
+        write_font_data_to_memory(&mut vm.memory);
+        write_rom_data_to_memory(&mut vm.memory, rom_data);
+
+        vm
+    }    
+
+    pub fn handle_keyboard_input(&mut self, keycode: KeyCode) {
+        self.pressed_key = match keycode {
+            KeyCode::Key1 => Some(0x1),
+            KeyCode::Key2 => Some(0x2),
+            KeyCode::Key3 => Some(0x3),
+            KeyCode::Key4 => Some(0xC),
+            KeyCode::Q => Some(0x4),
+            KeyCode::W => Some(0x5),
+            KeyCode::E => Some(0x6),
+            KeyCode::R => Some(0xD),
+            KeyCode::A => Some(0x7),
+            KeyCode::S => Some(0x8),
+            KeyCode::D => Some(0x9),
+            KeyCode::F => Some(0xE),
+            KeyCode::Z => Some(0xA),
+            KeyCode::X => Some(0x0),
+            KeyCode::C => Some(0xB),
+            KeyCode::V => Some(0xF),
+            _ => None,
+        };
+    }
+
     pub fn execute_instruction(&mut self, instruction: InstructionSet, opcode: u16) {
         match instruction {
             InstructionSet::ClearScreen => {
@@ -170,14 +218,14 @@ impl Chip8State {
                 }
             }
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsNotPressed(index) => {
-                if let Some(code) = self.chip8_key {
+                if let Some(code) = self.pressed_key {
                     if code != self.v[index as usize] {
                         self.program_counter += 2;
                     }
                 }
             }
             InstructionSet::SkipFollowingInstructionIfKeyCorrespondingToVxIsPressed(index) => {
-                if let Some(code) = self.chip8_key {
+                if let Some(code) = self.pressed_key {
                     if code == self.v[index as usize] {
                         self.program_counter += 2;
                     }

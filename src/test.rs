@@ -1,7 +1,12 @@
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+#![allow(unused_imports)]
+
+use crate::instructions::decode_opcode;
 use super::*;
 
-fn get_vm() -> Chip8State {
-    Chip8State {
+fn get_vm() -> Chip8VM {
+    Chip8VM {
         waiting_for_key_press: false,
         key_index_store: 0x00,
         display_data: [false; DISPLAY_SIZE[0] * DISPLAY_SIZE[1]],
@@ -13,7 +18,7 @@ fn get_vm() -> Chip8State {
         program_counter: 0x200,
         stack_pointer: 0,
         stack: [0 as u16; 16],
-        chip8_key: None,
+        pressed_key: None,
     }
 }
 
@@ -499,12 +504,12 @@ fn test_EX9E() {
     vm.v[0xE] = 0x01;
     //is pressed
     vm.program_counter = 0x00;
-    vm.chip8_key = Some(0x01);
+    vm.pressed_key = Some(0x01);
     vm.execute_instruction(decode_opcode(opcode), opcode);
     assert_eq!(vm.program_counter, 0x02);
 
     //is not pressed
-    vm.chip8_key = Some(0x02);
+    vm.pressed_key = Some(0x02);
     vm.program_counter = 0x00;
     vm.execute_instruction(decode_opcode(opcode), opcode);
     assert_eq!(vm.program_counter, 0x00);
@@ -520,12 +525,12 @@ fn test_EXA1() {
     vm.v[0xE] = 0x01;
     //is pressed
     vm.program_counter = 0x00;
-    vm.chip8_key = Some(0x01);
+    vm.pressed_key = Some(0x01);
     vm.execute_instruction(decode_opcode(opcode), opcode);
     assert_eq!(vm.program_counter, 0x00);
 
     //is not pressed
-    vm.chip8_key = Some(0x02);
+    vm.pressed_key = Some(0x02);
     vm.program_counter = 0x00;
     vm.execute_instruction(decode_opcode(opcode), opcode);
     assert_eq!(vm.program_counter, 0x02);

@@ -94,7 +94,7 @@ impl ImGuiWrapper {
         }
     }
 
-    pub fn render(&mut self, ctx: &mut Context, hidpi_factor: f32, chip8_state: &Chip8State) {
+    pub fn render(&mut self, ctx: &mut Context, hidpi_factor: f32, chip8_state: &Chip8VM) {
         // Update mouse
         self.update_mouse();
 
